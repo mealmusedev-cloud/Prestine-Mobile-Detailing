@@ -5,6 +5,13 @@
 
 window.Auth = (function () {
   const SESSION_KEY = "pmd_admin_session";
+  // Support both adminEmails (array) and legacy adminEmail (string)
+  function isAdminEmail(email) {
+    const cfg = window.APP_CONFIG;
+    if (Array.isArray(cfg.adminEmails)) return cfg.adminEmails.includes(email);
+    if (cfg.adminEmail) return email === cfg.adminEmail;
+    return false;
+  }
 
   // ── Local fallback (no Firebase) ──────────────────────────────
   async function localLogin(password) {
@@ -21,7 +28,7 @@ window.Auth = (function () {
       const provider = new firebase.auth.GoogleAuthProvider();
       const result = await window.firebaseAuth.signInWithPopup(provider);
       const email = result.user.email;
-      if (!window.APP_CONFIG.adminEmails.includes(email)) {
+      if (!isAdminEmail(email)) {
         await window.firebaseAuth.signOut();
         return { ok: false, error: "That Google account is not authorised." };
       }
