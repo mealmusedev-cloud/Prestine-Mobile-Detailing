@@ -5,11 +5,14 @@
 
 window.Auth = (function () {
   const SESSION_KEY = "pmd_admin_session";
+
   // Support both adminEmails (array) and legacy adminEmail (string)
   function isAdminEmail(email) {
-    const cfg = window.APP_CONFIG;
-    if (Array.isArray(cfg.adminEmails)) return cfg.adminEmails.includes(email);
-    if (cfg.adminEmail) return email === cfg.adminEmail;
+    try {
+      const cfg = window.APP_CONFIG;
+      if (Array.isArray(cfg.adminEmails)) return cfg.adminEmails.includes(email);
+      if (cfg.adminEmail) return email === cfg.adminEmail;
+    } catch (e) {}
     return false;
   }
 
@@ -53,24 +56,44 @@ window.Auth = (function () {
   }
 
   function isAuthed() {
-    if (window.APP_CONFIG.useLocalFallback) {
-      return sessionStorage.getItem(SESSION_KEY) === "1";
+    try {
+      if (window.APP_CONFIG.useLocalFallback) {
+        return sessionStorage.getItem(SESSION_KEY) === "1";
+      }
+      const user = window.firebaseAuth && window.firebaseAuth.currentUser;
+      return !!(user && isAdminEmail(user.email));
+    } catch (e) {
+      return false;
     }
-    const user = window.firebaseAuth && window.firebaseAuth.currentUser;
-    return !!(user && window.APP_CONFIG.adminEmails.includes(user.email));
   }
 
-  // Call at the top of every admin page — redirects to login if not signed in.
+  // Call at the top of every admin page.
+  // Hides the page until auth is confirmed — any error forces redirect to login.
   function requireAdmin() {
-    if (window.APP_CONFIG.useLocalFallback) {
-      if (!isAuthed()) window.location.href = "login.html";
-      return;
-    }
-    window.firebaseAuth.onAuthStateChanged((user) => {
-      if (!user || !window.APP_CONFIG.adminEmails.includes(user.email)) {
-        window.location.href = "login.html";
+    document.body.style.visibility = "hidden";
+    try {
+      if (window.APP_CONFIG.useLocalFallback) {
+        if (!isAuthed()) {
+          window.location.replace("login.html");
+        } else {
+          document.body.style.visibility = "";
+        }
+        return;
       }
-    });
+      window.firebaseAuth.onAuthStateChanged((user) => {
+        try {
+          if (!user || !isAdminEmail(user.email)) {
+            window.location.replace("login.html");
+          } else {
+            document.body.style.visibility = "";
+          }
+        } catch (e) {
+          window.location.replace("login.html");
+        }
+      });
+    } catch (e) {
+      window.location.replace("login.html");
+    }
   }
 
   return { login, logout, isAuthed, requireAdmin };
