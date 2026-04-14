@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Prestine Mobile Detailing</title>
+  <title>Prestine Mobile Detailing — Mobile Car Detailing</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -13,7 +13,7 @@
       <div class="nav-links">
         <a href="#services">Services</a>
         <a href="#about">About</a>
-        <a href="#contact">Contact</a>
+        <a id="navPhone" href="#" style="color:var(--text-dim);font-size:0.85rem"></a>
         <a href="booking.html" class="btn btn-sm">Book Now</a>
       </div>
     </div>
@@ -84,7 +84,9 @@
   <section id="contact">
     <div class="container text-center">
       <h2>Ready to Book?</h2>
-      <p class="section-subtitle" id="contactInfo"></p>
+      <p class="section-subtitle">Book online or give us a call — we come to you.</p>
+      <a id="contactPhone" href="#" class="contact-phone-link"></a>
+      <br/><br/>
       <a href="booking.html" class="btn btn-lg">Book an Appointment</a>
     </div>
   </section>
@@ -114,8 +116,12 @@
     document.getElementById("footerBrand").textContent = window.APP_CONFIG.business.name;
     document.getElementById("heroTagline").textContent = window.APP_CONFIG.business.tagline;
     const biz = window.APP_CONFIG.business;
-    document.getElementById("contactInfo").textContent =
-      biz.phone + (biz.email ? "  ·  " + biz.email : "");
+    const phoneHref = "tel:" + biz.phone.replace(/\D/g, "");
+    document.getElementById("navPhone").textContent = biz.phone;
+    document.getElementById("navPhone").href = phoneHref;
+    const cp = document.getElementById("contactPhone");
+    cp.textContent = biz.phone;
+    cp.href = phoneHref;
 
     (async function () {
       await DB.init();
