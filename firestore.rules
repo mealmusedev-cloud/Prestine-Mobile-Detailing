@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────────────────────
+    // SERVICES
+    // Anyone can read (booking page + landing page need service list).
+    // Only authenticated admins can create / update / delete.
+    // ──────────────────────────────────────────────────────────────
+    match /services/{id} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // BOOKINGS
+    // Anyone can create a booking (public booking form).
+    //   → status must be "pending" on create (only admins promote it)
+    //   → required fields are validated server-side here
+    // Only authenticated admins can read, update, or delete.
+    // ──────────────────────────────────────────────────────────────
+    match /bookings/{id} {
+      allow create: if isValidBooking(request.resource.data);
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // CUSTOMERS
+    // Public read is required because the booking form calls
+    // findCustomerByEmail() to avoid creating duplicate records.
+    // Anyone can create a customer record (validated).
+    // Only authenticated admins can update or delete.
+    // ──────────────────────────────────────────────────────────────
+    match /customers/{id} {
+      allow read: if true;
+      allow create: if isValidCustomer(request.resource.data);
+      allow update, delete: if request.auth != null;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // SINGLETONS  (stores availability config under doc id "availability")
+    // Public read so the booking page can show available time slots.
+    // Only authenticated admins can write.
+    // ──────────────────────────────────────────────────────────────
+    match /singletons/{id} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // VALIDATION HELPERS
+    // ──────────────────────────────────────────────────────────────
+
+    function isValidBooking(data) {
+      return
+        // All required fields must be present
+        data.keys().hasAll([
+          'serviceId', 'date', 'startTime', 'endTime',
+          'customerName', 'customerEmail', 'status'
+        ])
+        // New bookings must start as "pending" — only admins can promote
+        && data.status == 'pending'
+        // Name: non-empty string, 2–100 chars
+        && data.customerName is string
+        && data.customerName.size() >= 2
+        && data.customerName.size() <= 100
+        // Email: must contain "@"
+        && data.customerEmail is string
+        && data.customerEmail.size() >= 3
+        && data.customerEmail.matches('.*@.*')
+        // Date: YYYY-MM-DD (10 chars)
+        && data.date is string
+        && data.date.size() == 10;
+    }
+
+    function isValidCustomer(data) {
+      return
+        data.keys().hasAll(['name', 'email'])
+        && data.name is string
+        && data.name.size() >= 2
+        && data.name.size() <= 100
+        && data.email is string
+        && data.email.size() >= 3
+        && data.email.matches('.*@.*');
+    }
+  }
+}

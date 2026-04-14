@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prestine Mobile Detailing</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <nav class="nav" id="mainNav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">Prestine<span>.</span></a>
+      <div class="nav-links">
+        <a href="#services">Services</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a href="booking.html" class="btn btn-sm">Book Now</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-bg">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+    </div>
+    <div class="hero-content container">
+      <div class="hero-tag">✦ Mobile Car Detailing</div>
+      <h1>Your Car Deserves<br/>to Look Its Best</h1>
+      <p class="lede" id="heroTagline">Premium detailing brought directly to your door. Book online in seconds — pay in person after we're done.</p>
+      <div class="hero-cta">
+        <a href="booking.html" class="btn btn-lg">Book an Appointment</a>
+        <a href="#services" class="btn btn-lg btn-secondary">View Services</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="trust-bar">
+    <div class="trust-items">
+      <div class="trust-item"><span class="trust-icon">✓</span> <strong>We come to you</strong></div>
+      <div class="trust-item"><span class="trust-icon">✓</span> <strong>Pay after service</strong> — no upfront charge</div>
+      <div class="trust-item"><span class="trust-icon">✓</span> <strong>Premium products</strong> only</div>
+      <div class="trust-item"><span class="trust-icon">✓</span> <strong>Easy online booking</strong></div>
+    </div>
+  </div>
+
+  <section id="services">
+    <div class="container">
+      <h2>Our Services</h2>
+      <p class="section-subtitle">Choose the package that fits your needs</p>
+      <div id="servicesGrid" class="services-grid">
+        <div class="muted text-center" style="padding:2rem">Loading services…</div>
+      </div>
+      <div class="text-center mt-3">
+        <a href="booking.html" class="btn">Book an Appointment</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="about" class="section-alt">
+    <div class="container">
+      <h2>Why Choose Us</h2>
+      <p class="section-subtitle">We make the process effortless from start to finish</p>
+      <div class="services-grid">
+        <div class="card">
+          <div style="font-size:1.5rem;margin-bottom:0.75rem">📍</div>
+          <h3>We Come To You</h3>
+          <p class="desc">Save time and skip the drive. We bring professional-grade tools and supplies to your driveway, office, or wherever you park.</p>
+        </div>
+        <div class="card">
+          <div style="font-size:1.5rem;margin-bottom:0.75rem">⭐</div>
+          <h3>Premium Quality</h3>
+          <p class="desc">We use only top-tier soaps, waxes, and interior treatments — the kind that protect your paint and make your car stand out.</p>
+        </div>
+        <div class="card">
+          <div style="font-size:1.5rem;margin-bottom:0.75rem">💳</div>
+          <h3>Pay After Service</h3>
+          <p class="desc">Book online with zero upfront charge. Pay in cash or card only after the job is complete and you're satisfied.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="container text-center">
+      <h2>Ready to Book?</h2>
+      <p class="section-subtitle" id="contactInfo"></p>
+      <a href="booking.html" class="btn btn-lg">Book an Appointment</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      &copy; <span id="year"></span> <span id="footerBrand"></span>. All rights reserved.
+      <span style="margin: 0 0.5rem; opacity:0.3">·</span>
+      <a href="admin.html" style="color:var(--text-muted)">Admin</a>
+    </div>
+  </footer>
+
+  <!-- Firebase SDK (compat) — must load before config.js and firebase-init.js -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/firebase-init.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // Nav shadow on scroll
+    const nav = document.getElementById("mainNav");
+    window.addEventListener("scroll", () => nav.classList.toggle("scrolled", window.scrollY > 10), { passive: true });
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+    document.getElementById("footerBrand").textContent = window.APP_CONFIG.business.name;
+    document.getElementById("heroTagline").textContent = window.APP_CONFIG.business.tagline;
+    document.getElementById("contactInfo").textContent =
+      window.APP_CONFIG.business.phone + "  ·  " + window.APP_CONFIG.business.email;
+
+    (async function () {
+      await DB.init();
+      const services = await DB.listActiveServices();
+      const grid = document.getElementById("servicesGrid");
+      if (services.length === 0) {
+        grid.innerHTML = '<div class="muted text-center">No services available right now.</div>';
+        return;
+      }
+      grid.innerHTML = services.map(s => `
+        <div class="card">
+          <h3>${Utils.escapeHtml(s.name)}</h3>
+          <div class="price">${Utils.formatCurrency(s.price)}</div>
+          <div class="duration">${s.durationMinutes} min</div>
+          <p class="desc mt-2">${Utils.escapeHtml(s.description || "")}</p>
+        </div>
+      `).join("");
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Book an Appointment — Prestine Mobile Detailing</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-brand">Prestine<span>.</span></a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="index.html#services">Services</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="booking-page-wrap">
+    <h1>Book Your Detail</h1>
+    <p class="page-sub">Select a service, pick your time, and we'll come to you.</p>
+
+    <!-- Progress steps -->
+    <div class="steps" id="steps">
+      <div class="step-item" data-step="1">
+        <div class="step-dot">1</div>
+        <div class="step-label">Service</div>
+      </div>
+      <div class="step-item" data-step="2">
+        <div class="step-dot">2</div>
+        <div class="step-label">Date</div>
+      </div>
+      <div class="step-item" data-step="3">
+        <div class="step-dot">3</div>
+        <div class="step-label">Time</div>
+      </div>
+      <div class="step-item" data-step="4">
+        <div class="step-dot">4</div>
+        <div class="step-label">Info</div>
+      </div>
+    </div>
+
+    <!-- Step 1: Service -->
+    <div id="step1" class="booking-section">
+      <h2>Choose a service</h2>
+      <div id="servicesList">
+        <div class="muted">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Date -->
+    <div id="step2" class="booking-section hidden">
+      <h2>Pick a date</h2>
+      <div id="selectedServiceLabel" class="booking-summary-strip" style="display:none"></div>
+      <div id="dateGrid" class="date-grid"></div>
+      <div class="mt-2"><button class="btn btn-secondary btn-sm" data-back="1">← Back</button></div>
+    </div>
+
+    <!-- Step 3: Time -->
+    <div id="step3" class="booking-section hidden">
+      <h2>Pick a time</h2>
+      <div id="selectedDateLabel" class="booking-summary-strip" style="display:none"></div>
+      <div id="slotGrid" class="slot-grid"></div>
+      <div class="mt-2"><button class="btn btn-secondary btn-sm" data-back="2">← Back</button></div>
+    </div>
+
+    <!-- Step 4: Contact -->
+    <div id="step4" class="booking-section hidden">
+      <h2>Your info</h2>
+      <div id="bookingSummary" class="booking-summary-strip" style="display:none"></div>
+      <form id="contactForm">
+        <div class="row">
+          <div class="form-row">
+            <label for="custName">Full name</label>
+            <input id="custName" required autocomplete="name" placeholder="Jane Smith" />
+          </div>
+          <div class="form-row">
+            <label for="custPhone">Phone number</label>
+            <input id="custPhone" type="tel" required autocomplete="tel" placeholder="(555) 555-5555" />
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="custEmail">Email address</label>
+          <input id="custEmail" type="email" required autocomplete="email" placeholder="you@email.com" />
+        </div>
+        <div class="form-row">
+          <label for="custAddress">Service address</label>
+          <input id="custAddress" required autocomplete="street-address" placeholder="Where we should come to detail your vehicle" />
+        </div>
+        <div class="form-row">
+          <label for="custNotes">Vehicle & notes <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+          <textarea id="custNotes" placeholder="Year, make, model, color, any special requests…"></textarea>
+        </div>
+        <div id="formError" class="error-msg"></div>
+        <div class="row mt-1">
+          <button class="btn btn-secondary" type="button" data-back="3">← Back</button>
+          <button class="btn" id="submitBtn" type="submit">Confirm Booking →</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Step 5: Confirmation -->
+    <div id="step5" class="booking-section hidden">
+      <div class="confirmation">
+        <div class="confirm-icon-wrap">
+          <div class="confirm-icon">✓</div>
+        </div>
+        <h2>You're All Set!</h2>
+        <p id="confirmText"></p>
+        <p class="muted" style="font-size:0.88rem">Payment is collected in person after the service is complete.<br/>We'll see you soon!</p>
+        <a href="index.html" class="btn" style="margin-top:1rem">Back to Home</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      &copy; <span id="year"></span> Prestine Mobile Detailing
+    </div>
+  </footer>
+
+  <!-- Firebase SDK (compat) — must load before config.js and firebase-init.js -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/firebase-init.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/booking.js"></script>
+</body>
+</html>
