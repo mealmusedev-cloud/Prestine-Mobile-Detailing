@@ -376,7 +376,10 @@
       <div class="form-row"><label>Description</label><textarea id="sfDesc">${Utils.escapeHtml(s.description || "")}</textarea></div>
       <div class="form-row"><label>Price ($)</label><input id="sfPrice" type="number" step="0.01" value="${s.price || ""}" required /></div>
       <div class="form-row"><label>Duration (minutes)</label><input id="sfDur" type="number" step="15" value="${s.durationMinutes || 60}" required /></div>
-      <div class="checkbox-row"><input id="sfActive" type="checkbox" ${s.active !== false ? "checked" : ""} /><label for="sfActive">Active</label></div>`;
+      <div class="form-row" style="display:flex;align-items:center;gap:0.75rem">
+        <label class="toggle-switch"><input id="sfActive" type="checkbox" ${s.active !== false ? "checked" : ""} /><span class="toggle-slider"></span></label>
+        <span style="font-size:0.88rem;color:var(--text-dim);font-weight:600">Active — customers can book this service</span>
+      </div>`;
   }
 
   function readServiceForm() {

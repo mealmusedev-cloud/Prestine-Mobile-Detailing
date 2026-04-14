@@ -964,7 +964,7 @@ td small { color: var(--text-muted); font-size: 0.78rem; }
 .toggle-slider {
   position: absolute;
   inset: 0;
-  background: rgba(255,255,255,0.15);
+  background: rgba(239,68,68,0.7);
   border-radius: 22px;
   cursor: pointer;
   transition: background 0.2s ease;
@@ -979,7 +979,7 @@ td small { color: var(--text-muted); font-size: 0.78rem; }
   transition: transform 0.2s ease;
   box-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
-.toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+.toggle-switch input:checked + .toggle-slider { background: rgba(34,197,94,0.85); }
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); }
 
 .hours-grid { display: flex; flex-direction: column; gap: 0.5rem; max-width: 560px; }
