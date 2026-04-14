@@ -954,12 +954,7 @@ td small { color: var(--text-muted); font-size: 0.78rem; }
   flex-shrink: 0;
 }
 .toggle-switch input {
-  opacity: 0;
-  width: 0 !important;
-  height: 0 !important;
-  position: absolute;
-  margin: 0;
-  padding: 0;
+  display: none !important;
 }
 .toggle-slider {
   position: absolute;
