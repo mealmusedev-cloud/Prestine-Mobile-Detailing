@@ -26,7 +26,7 @@ window.APP_CONFIG = {
   devAdminPassword: "admin123",
 
   business: {
-    name: "Prestine Mobile Detailing",
+    name: "Pristine Mobile Detailing",
     phone: "(360) 580-4840",
     email: "",
     tagline: "Premium mobile detailing that comes to you"
