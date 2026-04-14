@@ -25,8 +25,8 @@ window.APP_CONFIG = {
 
   business: {
     name: "Prestine Mobile Detailing",
-    phone: "(555) 555-5555",
-    email: "contact@prestinemobile.com",
+    phone: "(360) 580-4840",
+    email: "",
     tagline: "Premium mobile detailing that comes to you"
   }
 };

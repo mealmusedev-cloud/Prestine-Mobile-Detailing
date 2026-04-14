@@ -93,27 +93,43 @@
   // ---------- Default seed data ----------
   const DEFAULT_SERVICES = [
     {
-      id: "svc_basic",
-      name: "Express Wash",
-      description: "Exterior hand wash, wheels, tires, and quick interior vacuum.",
-      price: 45,
+      id: "svc_truck_ext",
+      name: "Exterior Wash — Trucks & SUVs",
+      description: "Full exterior hand wash, wheels, tires, and window clean for trucks and SUVs.",
+      price: 30,
       durationMinutes: 60,
+      vehicleType: "truck-suv",
+      serviceType: "exterior",
       active: true
     },
     {
-      id: "svc_full",
-      name: "Full Detail",
-      description: "Complete interior + exterior detail: wash, wax, vacuum, shampoo, and dressings.",
-      price: 150,
-      durationMinutes: 180,
+      id: "svc_truck_int",
+      name: "Interior Detail — Trucks & SUVs",
+      description: "Deep interior detail including vacuum, shampoo, wipe-down, and dressings for trucks and SUVs.",
+      price: 170,
+      durationMinutes: 150,
+      vehicleType: "truck-suv",
+      serviceType: "interior",
       active: true
     },
     {
-      id: "svc_premium",
-      name: "Premium Showroom",
-      description: "Clay bar, polish, ceramic-style sealant, deep interior shampoo.",
-      price: 275,
-      durationMinutes: 300,
+      id: "svc_sedan_ext",
+      name: "Exterior Wash — Sedans",
+      description: "Full exterior hand wash, wheels, tires, and window clean for cars and sedans.",
+      price: 25,
+      durationMinutes: 45,
+      vehicleType: "sedan",
+      serviceType: "exterior",
+      active: true
+    },
+    {
+      id: "svc_sedan_int",
+      name: "Interior Detail — Sedans",
+      description: "Deep interior detail including vacuum, shampoo, wipe-down, and dressings for cars and sedans.",
+      price: 80,
+      durationMinutes: 120,
+      vehicleType: "sedan",
+      serviceType: "interior",
       active: true
     }
   ];
@@ -147,12 +163,22 @@
   const DB = {
     async init() {
       // Seed defaults the first time the app runs.
-      const services = await backend().list("services");
-      if (services.length === 0) {
-        for (const s of DEFAULT_SERVICES) await backend().add("services", s);
+      // In Firebase mode, writes require admin auth — seed is skipped if not authorised.
+      // The admin can add services manually via the admin panel.
+      try {
+        const services = await backend().list("services");
+        if (services.length === 0 && window.APP_CONFIG.useLocalFallback) {
+          for (const s of DEFAULT_SERVICES) await backend().add("services", s);
+        }
+      } catch (e) {
+        console.warn("[DB.init] Could not seed services:", e.message);
       }
-      const avail = await backend().getSingleton("availability");
-      if (!avail) await backend().setSingleton("availability", DEFAULT_AVAILABILITY);
+      try {
+        const avail = await backend().getSingleton("availability");
+        if (!avail) await backend().setSingleton("availability", DEFAULT_AVAILABILITY);
+      } catch (e) {
+        console.warn("[DB.init] Could not seed availability:", e.message);
+      }
     },
 
     // services

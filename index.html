@@ -113,8 +113,9 @@
     document.getElementById("year").textContent = new Date().getFullYear();
     document.getElementById("footerBrand").textContent = window.APP_CONFIG.business.name;
     document.getElementById("heroTagline").textContent = window.APP_CONFIG.business.tagline;
+    const biz = window.APP_CONFIG.business;
     document.getElementById("contactInfo").textContent =
-      window.APP_CONFIG.business.phone + "  ·  " + window.APP_CONFIG.business.email;
+      biz.phone + (biz.email ? "  ·  " + biz.email : "");
 
     (async function () {
       await DB.init();
@@ -124,14 +125,36 @@
         grid.innerHTML = '<div class="muted text-center">No services available right now.</div>';
         return;
       }
-      grid.innerHTML = services.map(s => `
-        <div class="card">
-          <h3>${Utils.escapeHtml(s.name)}</h3>
-          <div class="price">${Utils.formatCurrency(s.price)}</div>
-          <div class="duration">${s.durationMinutes} min</div>
-          <p class="desc mt-2">${Utils.escapeHtml(s.description || "")}</p>
-        </div>
-      `).join("");
+
+      // Group by vehicle type for display
+      const groups = {};
+      for (const s of services) {
+        const key = s.vehicleType || "other";
+        if (!groups[key]) groups[key] = { label: "", services: [] };
+        groups[key].services.push(s);
+      }
+      // Set display labels
+      if (groups["truck-suv"]) groups["truck-suv"].label = "🚛 Trucks & SUVs";
+      if (groups["sedan"])     groups["sedan"].label     = "🚗 Sedans";
+      if (groups["other"])     groups["other"].label     = "All Vehicles";
+
+      const order = ["truck-suv", "sedan", "other"];
+      const cards = order.filter(k => groups[k]).map(k => {
+        const { label, services: svcs } = groups[k];
+        const rows = svcs.map(s => `
+          <div class="vehicle-price-row">
+            <span>${Utils.escapeHtml(s.serviceType === "exterior" ? "Exterior Wash" : s.serviceType === "interior" ? "Interior Detail" : s.name)}</span>
+            <span class="vehicle-price-val">${Utils.formatCurrency(s.price)}</span>
+          </div>
+        `).join("");
+        return `
+          <div class="card vehicle-card">
+            <h3>${label}</h3>
+            <div class="vehicle-price-list">${rows}</div>
+          </div>
+        `;
+      });
+      grid.innerHTML = cards.join("");
     })();
   </script>
 </body>
