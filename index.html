@@ -124,11 +124,16 @@
     cp.href = phoneHref;
 
     (async function () {
-      await DB.init();
-      const services = await DB.listActiveServices();
       const grid = document.getElementById("servicesGrid");
+      let services = [];
+      try {
+        await DB.init();
+        services = await DB.listActiveServices();
+      } catch (e) {
+        console.warn("Could not load services from database:", e.message);
+      }
       if (services.length === 0) {
-        grid.innerHTML = '<div class="muted text-center">No services available right now.</div>';
+        grid.innerHTML = '<div class="muted text-center" style="padding:2rem">No services listed yet — check back soon.</div>';
         return;
       }
 
