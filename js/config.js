@@ -16,9 +16,11 @@ window.APP_CONFIG = {
     measurementId: "G-4RTJLNG6LP"
   },
 
-  // The Google account allowed to access the admin panel.
-  // Only this email can sign in — anyone else gets rejected.
-  adminEmail: "pristin3mobil3d3tailing2026@gmail.com",
+  // Google accounts allowed to access the admin panel.
+  adminEmails: [
+    "pristin3mobil3d3tailing2026@gmail.com",
+    "haydenfuhrer2@gmail.com"
+  ],
 
   // Dev password — only used in local fallback mode (when Firebase is not configured).
   devAdminPassword: "admin123",

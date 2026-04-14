@@ -1,5 +1,5 @@
 // Admin authentication.
-// Firebase mode  : Google Sign-In, restricted to APP_CONFIG.adminEmail.
+// Firebase mode  : Google Sign-In, restricted to APP_CONFIG.adminEmails list.
 // Local fallback : password compared against APP_CONFIG.devAdminPassword,
 //                  session stored in sessionStorage.
 
@@ -21,7 +21,7 @@ window.Auth = (function () {
       const provider = new firebase.auth.GoogleAuthProvider();
       const result = await window.firebaseAuth.signInWithPopup(provider);
       const email = result.user.email;
-      if (email !== window.APP_CONFIG.adminEmail) {
+      if (!window.APP_CONFIG.adminEmails.includes(email)) {
         await window.firebaseAuth.signOut();
         return { ok: false, error: "That Google account is not authorised." };
       }
@@ -50,7 +50,7 @@ window.Auth = (function () {
       return sessionStorage.getItem(SESSION_KEY) === "1";
     }
     const user = window.firebaseAuth && window.firebaseAuth.currentUser;
-    return !!(user && user.email === window.APP_CONFIG.adminEmail);
+    return !!(user && window.APP_CONFIG.adminEmails.includes(user.email));
   }
 
   // Call at the top of every admin page — redirects to login if not signed in.
@@ -60,7 +60,7 @@ window.Auth = (function () {
       return;
     }
     window.firebaseAuth.onAuthStateChanged((user) => {
-      if (!user || user.email !== window.APP_CONFIG.adminEmail) {
+      if (!user || !window.APP_CONFIG.adminEmails.includes(user.email)) {
         window.location.href = "login.html";
       }
     });
