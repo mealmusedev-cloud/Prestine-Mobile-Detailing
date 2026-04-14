@@ -546,21 +546,31 @@
     document.getElementById("slotDur").value = String(availData.slotDurationMinutes || 60);
     document.getElementById("bufferTime").value = String(availData.bufferMinutes != null ? availData.bufferMinutes : 120);
 
+    const DAY_LABELS = { sun: "Sunday", mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday" };
     const grid = document.getElementById("hoursGrid");
     grid.innerHTML = Utils.DAY_KEYS.map((day) => {
       const h = (availData.workingHours && availData.workingHours[day]) || { start: "09:00", end: "17:00", closed: true };
-      return `<div class="hours-row">
-        <label>${day}</label>
-        <input type="time" id="hw-${day}-start" value="${h.start}" ${h.closed ? "disabled" : ""} />
-        <input type="time" id="hw-${day}-end" value="${h.end}" ${h.closed ? "disabled" : ""} />
-        <div class="checkbox-row"><input type="checkbox" id="hw-${day}-open" ${!h.closed ? "checked" : ""} /><label for="hw-${day}-open">Open</label></div>
+      const isOpen = !h.closed;
+      return `<div class="hours-row" id="hrow-${day}">
+        <label class="toggle-switch">
+          <input type="checkbox" id="hw-${day}-open" ${isOpen ? "checked" : ""} />
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="day-name">${DAY_LABELS[day]}</span>
+        <div class="day-times" id="htimes-${day}" ${!isOpen ? 'style="display:none"' : ""}>
+          <input type="time" id="hw-${day}-start" value="${h.start}" />
+          <span>to</span>
+          <input type="time" id="hw-${day}-end" value="${h.end}" />
+        </div>
+        <span class="day-closed-label" id="hclosed-${day}" ${isOpen ? 'style="display:none"' : ""}>Closed</span>
       </div>`;
     }).join("");
 
     Utils.DAY_KEYS.forEach((day) => {
       document.getElementById(`hw-${day}-open`).addEventListener("change", (e) => {
-        document.getElementById(`hw-${day}-start`).disabled = !e.target.checked;
-        document.getElementById(`hw-${day}-end`).disabled = !e.target.checked;
+        const open = e.target.checked;
+        document.getElementById(`htimes-${day}`).style.display = open ? "" : "none";
+        document.getElementById(`hclosed-${day}`).style.display = open ? "none" : "";
       });
     });
 
