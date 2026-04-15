@@ -83,6 +83,35 @@
       <div id="customersTableWrap"></div>
     </section>
 
+    <!-- About Section -->
+    <section id="tab-about" class="tab-content hidden">
+      <h2>Why Choose Us</h2>
+      <p class="muted" style="margin-bottom:1.5rem">Edit the heading, subtitle, and cards shown in the "Why Choose Us" section on the home page.</p>
+
+      <div class="card mt-2" style="max-width:680px">
+        <h3>Section Header</h3>
+        <div class="form-row">
+          <label for="aboutHeading">Heading</label>
+          <input id="aboutHeading" placeholder="Why Choose Us" />
+        </div>
+        <div class="form-row">
+          <label for="aboutSubheading">Subheading</label>
+          <input id="aboutSubheading" placeholder="We make the process effortless from start to finish" />
+        </div>
+      </div>
+
+      <div class="card mt-3" style="max-width:680px">
+        <h3>Cards</h3>
+        <div id="aboutCardsList"></div>
+        <button class="btn btn-sm mt-2" id="addAboutCardBtn">+ Add Card</button>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn" id="saveAboutBtn">Save Changes</button>
+        <span id="aboutSaveStatus" class="muted" style="margin-left:0.75rem"></span>
+      </div>
+    </section>
+
     <!-- Availability -->
     <section id="tab-availability" class="tab-content hidden">
       <h2>Availability</h2>

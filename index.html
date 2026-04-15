@@ -60,21 +60,12 @@
 
   <section id="about" class="section-alt">
     <div class="container">
-      <h2>Why Choose Us</h2>
-      <p class="section-subtitle">We make the process effortless from start to finish</p>
-      <div class="services-grid">
-        <div class="card">
-          <h3>We Come To You</h3>
-          <p class="desc">Save time and skip the drive. We bring professional-grade tools and supplies to your driveway, office, or wherever you park.</p>
-        </div>
-        <div class="card">
-          <h3>Premium Quality</h3>
-          <p class="desc">We use only top-tier soaps, waxes, and interior treatments — the kind that protect your paint and make your car stand out.</p>
-        </div>
-        <div class="card">
-          <h3>Pay After Service</h3>
-          <p class="desc">Book online with zero upfront charge. Pay in cash or card only after the job is complete and you're satisfied.</p>
-        </div>
+      <h2 id="aboutHeading">Why Choose Us</h2>
+      <p class="section-subtitle" id="aboutSubheading">We make the process effortless from start to finish</p>
+      <div class="services-grid" id="aboutCardsGrid">
+        <div class="card"><h3>We Come To You</h3><p class="desc">Save time and skip the drive. We bring professional-grade tools and supplies to your driveway, office, or wherever you park.</p></div>
+        <div class="card"><h3>Premium Quality</h3><p class="desc">We use only top-tier soaps, waxes, and interior treatments — the kind that protect your paint and make your car stand out.</p></div>
+        <div class="card"><h3>Pay After Service</h3><p class="desc">Book online with zero upfront charge. Pay in cash or card only after the job is complete and you're satisfied.</p></div>
       </div>
     </div>
   </section>
@@ -120,6 +111,25 @@
     const cp = document.getElementById("contactPhone");
     cp.textContent = biz.phone;
     cp.href = phoneHref;
+
+    // Load editable About section
+    (async function () {
+      try {
+        await DB.init();
+        const about = await DB.getAbout();
+        if (about) {
+          if (about.heading)    document.getElementById("aboutHeading").textContent    = about.heading;
+          if (about.subheading) document.getElementById("aboutSubheading").textContent = about.subheading;
+          if (about.cards && about.cards.length) {
+            document.getElementById("aboutCardsGrid").innerHTML = about.cards.map((c) =>
+              `<div class="card"><h3>${Utils.escapeHtml(c.heading || "")}</h3><p class="desc">${Utils.escapeHtml(c.body || "")}</p></div>`
+            ).join("");
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load about section:", e.message);
+      }
+    })();
 
     (async function () {
       const grid = document.getElementById("servicesGrid");

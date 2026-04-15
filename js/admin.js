@@ -657,13 +657,89 @@
     setTimeout(() => (msg.textContent = ""), 2000);
   });
 
+  // ======================================================================
+  //  ABOUT TAB
+  // ======================================================================
+  let aboutData = null;
+
+  async function loadAbout() {
+    aboutData = await DB.getAbout();
+    document.getElementById("aboutHeading").value = aboutData.heading || "";
+    document.getElementById("aboutSubheading").value = aboutData.subheading || "";
+    renderAboutCards();
+  }
+
+  function renderAboutCards() {
+    const cards = aboutData.cards || [];
+    const el = document.getElementById("aboutCardsList");
+    if (cards.length === 0) {
+      el.innerHTML = '<p class="muted">No cards yet. Click "+ Add Card" to add one.</p>';
+      return;
+    }
+    el.innerHTML = cards.map((c, i) => `
+      <div class="about-card-editor" data-idx="${i}">
+        <div class="about-card-editor-header">
+          <span class="about-card-num">Card ${i + 1}</span>
+          <button class="btn btn-sm btn-danger" data-remove-card="${i}" style="padding:0.15rem 0.6rem">Remove</button>
+        </div>
+        <div class="form-row">
+          <label>Heading</label>
+          <input class="ac-heading" data-idx="${i}" value="${Utils.escapeHtml(c.heading || "")}" placeholder="e.g. We Come To You" />
+        </div>
+        <div class="form-row">
+          <label>Body text</label>
+          <textarea class="ac-body" data-idx="${i}" placeholder="Describe this benefit…">${Utils.escapeHtml(c.body || "")}</textarea>
+        </div>
+      </div>
+    `).join("");
+
+    el.querySelectorAll("[data-remove-card]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        aboutData.cards.splice(Number(btn.dataset.removeCard), 1);
+        renderAboutCards();
+      })
+    );
+  }
+
+  function readAboutCards() {
+    const headings = document.querySelectorAll(".ac-heading");
+    const bodies   = document.querySelectorAll(".ac-body");
+    const cards = [];
+    headings.forEach((h, i) => {
+      cards.push({ heading: h.value.trim(), body: bodies[i].value.trim() });
+    });
+    return cards;
+  }
+
+  document.getElementById("addAboutCardBtn").addEventListener("click", () => {
+    if (!aboutData.cards) aboutData.cards = [];
+    // Snapshot current edits before adding
+    aboutData.cards = readAboutCards();
+    aboutData.cards.push({ heading: "", body: "" });
+    renderAboutCards();
+    // Focus the new heading input
+    const inputs = document.querySelectorAll(".ac-heading");
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  document.getElementById("saveAboutBtn").addEventListener("click", async () => {
+    aboutData.heading    = document.getElementById("aboutHeading").value.trim();
+    aboutData.subheading = document.getElementById("aboutSubheading").value.trim();
+    aboutData.cards      = readAboutCards();
+    await DB.setAbout(aboutData);
+    const msg = document.getElementById("aboutSaveStatus");
+    msg.textContent = "Saved!";
+    setTimeout(() => (msg.textContent = ""), 2000);
+  });
+
   // ---------- Tab loaders ----------
   const tabLoaders = {
     bookings: loadBookings,
     calendar: loadCalendar,
     services: loadServices,
     customers: loadCustomers,
-    availability: loadAvailability
+    availability: loadAvailability,
+    about: loadAbout
   };
 
   loadBookings();

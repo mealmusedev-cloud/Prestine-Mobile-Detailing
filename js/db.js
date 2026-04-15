@@ -222,6 +222,22 @@
     },
     setAvailability: (data) => backend().setSingleton("availability", data),
 
+    // about section
+    getAbout: async () => {
+      const stored = await backend().getSingleton("about");
+      if (stored) return stored;
+      return {
+        heading: "Why Choose Us",
+        subheading: "We make the process effortless from start to finish",
+        cards: [
+          { heading: "We Come To You", body: "Save time and skip the drive. We bring professional-grade tools and supplies to your driveway, office, or wherever you park." },
+          { heading: "Premium Quality", body: "We use only top-tier soaps, waxes, and interior treatments — the kind that protect your paint and make your car stand out." },
+          { heading: "Pay After Service", body: "Book online with zero upfront charge. Pay in cash or card only after the job is complete and you're satisfied." }
+        ]
+      };
+    },
+    setAbout: (data) => backend().setSingleton("about", data),
+
     // utility
     _resetAll() {
       COLLECTIONS.forEach((c) => localStorage.removeItem(LS_PREFIX + c));

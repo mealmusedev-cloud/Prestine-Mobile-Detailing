@@ -1075,6 +1075,30 @@ td small { color: var(--text-muted); font-size: 0.78rem; }
 .checklist-template-item:hover { border-color: var(--border-light); }
 
 /* ============================================================
+   ABOUT CARD EDITOR (admin)
+   ============================================================ */
+.about-card-editor {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem 0.5rem;
+  margin-bottom: 0.85rem;
+  background: var(--bg-elev);
+}
+.about-card-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+}
+.about-card-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================================
    NOTES LOG
    ============================================================ */
 .notes-log {
