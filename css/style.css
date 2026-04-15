@@ -351,10 +351,11 @@ section > h2 {
   flex-wrap: wrap;
   gap: 1.25rem;
   justify-content: center;
+  align-items: stretch;
 }
 .services-grid .card {
-  flex: 1 1 300px;
-  max-width: 420px;
+  flex: 0 1 380px;
+  min-width: 280px;
 }
 
 .card {
