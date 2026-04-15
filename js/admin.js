@@ -658,6 +658,79 @@
   });
 
   // ======================================================================
+  //  SITE SETTINGS TAB
+  // ======================================================================
+  let siteSettings = null;
+
+  async function loadSettings() {
+    siteSettings = await DB.getSiteSettings();
+    document.getElementById("stPhone").value            = siteSettings.phone              || "";
+    document.getElementById("stEmail").value            = siteSettings.email              || "";
+    document.getElementById("stHeroHeadline").value     = siteSettings.heroHeadline        || "";
+    document.getElementById("stHeroTagline").value      = siteSettings.heroTagline         || "";
+    document.getElementById("stSvcHeading").value       = siteSettings.servicesHeading     || "";
+    document.getElementById("stSvcSubheading").value    = siteSettings.servicesSubheading  || "";
+    document.getElementById("stSvcDisclaimer").value    = siteSettings.servicesDisclaimer  || "";
+    document.getElementById("stContactHeading").value   = siteSettings.contactHeading      || "";
+    document.getElementById("stContactSubheading").value= siteSettings.contactSubheading   || "";
+    renderTrustItems();
+  }
+
+  function renderTrustItems() {
+    const items = siteSettings.trustItems || [];
+    const el = document.getElementById("trustItemsList");
+    if (items.length === 0) {
+      el.innerHTML = '<p class="muted">No trust items. Click "+ Add Item".</p>';
+      return;
+    }
+    el.innerHTML = items.map((item, i) => `
+      <div class="trust-editor-row">
+        <input class="trust-item-input" data-idx="${i}" value="${Utils.escapeHtml(item)}" placeholder="e.g. We come to you" />
+        <button class="btn btn-sm btn-danger" data-remove-trust="${i}" style="padding:0.25rem 0.6rem;flex-shrink:0">×</button>
+      </div>
+    `).join("");
+    el.querySelectorAll("[data-remove-trust]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        siteSettings.trustItems = readTrustItems();
+        siteSettings.trustItems.splice(Number(btn.dataset.removeTrust), 1);
+        renderTrustItems();
+      })
+    );
+  }
+
+  function readTrustItems() {
+    return [...document.querySelectorAll(".trust-item-input")].map((i) => i.value.trim()).filter(Boolean);
+  }
+
+  document.getElementById("addTrustItemBtn").addEventListener("click", () => {
+    siteSettings.trustItems = readTrustItems();
+    siteSettings.trustItems.push("");
+    renderTrustItems();
+    const inputs = document.querySelectorAll(".trust-item-input");
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
+    siteSettings = {
+      ...siteSettings,
+      phone:               document.getElementById("stPhone").value.trim(),
+      email:               document.getElementById("stEmail").value.trim(),
+      heroHeadline:        document.getElementById("stHeroHeadline").value.trim(),
+      heroTagline:         document.getElementById("stHeroTagline").value.trim(),
+      servicesHeading:     document.getElementById("stSvcHeading").value.trim(),
+      servicesSubheading:  document.getElementById("stSvcSubheading").value.trim(),
+      servicesDisclaimer:  document.getElementById("stSvcDisclaimer").value.trim(),
+      contactHeading:      document.getElementById("stContactHeading").value.trim(),
+      contactSubheading:   document.getElementById("stContactSubheading").value.trim(),
+      trustItems:          readTrustItems()
+    };
+    await DB.setSiteSettings(siteSettings);
+    const msg = document.getElementById("settingsSaveStatus");
+    msg.textContent = "Saved!";
+    setTimeout(() => (msg.textContent = ""), 2000);
+  });
+
+  // ======================================================================
   //  ABOUT TAB
   // ======================================================================
   let aboutData = null;
@@ -739,7 +812,8 @@
     services: loadServices,
     customers: loadCustomers,
     availability: loadAvailability,
-    about: loadAbout
+    about: loadAbout,
+    settings: loadSettings
   };
 
   loadBookings();

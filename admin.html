@@ -22,6 +22,7 @@
     <button data-tab="customers">Customers</button>
     <button data-tab="availability">Availability</button>
     <button data-tab="about">About Section</button>
+    <button data-tab="settings">Site Settings</button>
   </div>
 
   <main class="admin-body">
@@ -81,6 +82,77 @@
     <section id="tab-customers" class="tab-content hidden">
       <h2>Customers</h2>
       <div id="customersTableWrap"></div>
+    </section>
+
+    <!-- Site Settings -->
+    <section id="tab-settings" class="tab-content hidden">
+      <h2>Site Settings</h2>
+      <p class="muted" style="margin-bottom:1.5rem">Control the text and content shown across the entire website.</p>
+
+      <div class="card mt-2" style="max-width:680px">
+        <h3>Business Info</h3>
+        <div class="form-row">
+          <label for="stPhone">Phone Number</label>
+          <input id="stPhone" type="tel" placeholder="(360) 580-4840" />
+        </div>
+        <div class="form-row">
+          <label for="stEmail">Email Address <span style="font-weight:400;color:var(--text-muted)">(optional)</span></label>
+          <input id="stEmail" type="email" placeholder="you@email.com" />
+        </div>
+      </div>
+
+      <div class="card mt-3" style="max-width:680px">
+        <h3>Hero Section</h3>
+        <p class="muted">The big banner at the top of the home page.</p>
+        <div class="form-row">
+          <label for="stHeroHeadline">Headline</label>
+          <input id="stHeroHeadline" placeholder="Your Car Deserves to Look Its Best" />
+        </div>
+        <div class="form-row">
+          <label for="stHeroTagline">Tagline</label>
+          <textarea id="stHeroTagline" rows="2" placeholder="Premium detailing brought directly to your door…"></textarea>
+        </div>
+      </div>
+
+      <div class="card mt-3" style="max-width:680px">
+        <h3>Trust Bar</h3>
+        <p class="muted">The four checkmark items shown just below the hero.</p>
+        <div id="trustItemsList"></div>
+        <button class="btn btn-sm mt-2" id="addTrustItemBtn">+ Add Item</button>
+      </div>
+
+      <div class="card mt-3" style="max-width:680px">
+        <h3>Services Section</h3>
+        <div class="form-row">
+          <label for="stSvcHeading">Heading</label>
+          <input id="stSvcHeading" placeholder="Our Services" />
+        </div>
+        <div class="form-row">
+          <label for="stSvcSubheading">Subheading</label>
+          <input id="stSvcSubheading" placeholder="Choose the package that fits your needs" />
+        </div>
+        <div class="form-row">
+          <label for="stSvcDisclaimer">Disclaimer note</label>
+          <textarea id="stSvcDisclaimer" rows="2"></textarea>
+        </div>
+      </div>
+
+      <div class="card mt-3" style="max-width:680px">
+        <h3>Contact Section</h3>
+        <div class="form-row">
+          <label for="stContactHeading">Heading</label>
+          <input id="stContactHeading" placeholder="Ready to Book?" />
+        </div>
+        <div class="form-row">
+          <label for="stContactSubheading">Subheading</label>
+          <input id="stContactSubheading" placeholder="Book online or give us a call — we come to you." />
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn" id="saveSettingsBtn">Save All Settings</button>
+        <span id="settingsSaveStatus" class="muted" style="margin-left:0.75rem"></span>
+      </div>
     </section>
 
     <!-- About Section -->

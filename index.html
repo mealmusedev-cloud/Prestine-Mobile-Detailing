@@ -26,7 +26,7 @@
     </div>
     <div class="hero-content container">
       <div class="hero-tag">✦ Mobile Car Detailing</div>
-      <h1>Your Car Deserves<br/>to Look Its Best</h1>
+      <h1 id="heroHeadline">Your Car Deserves to Look Its Best</h1>
       <p class="lede" id="heroTagline">Premium detailing brought directly to your door. Book online in seconds — pay in person after we're done.</p>
       <div class="hero-cta">
         <a href="booking.html" class="btn btn-lg">Book an Appointment</a>
@@ -36,7 +36,7 @@
   </header>
 
   <div class="trust-bar">
-    <div class="trust-items">
+    <div class="trust-items" id="trustItems">
       <div class="trust-item"><span class="trust-icon">✓</span> <strong>We come to you</strong></div>
       <div class="trust-item"><span class="trust-icon">✓</span> <strong>Pay after service</strong> — no upfront charge</div>
       <div class="trust-item"><span class="trust-icon">✓</span> <strong>Premium products</strong> only</div>
@@ -46,12 +46,12 @@
 
   <section id="services">
     <div class="container">
-      <h2>Our Services</h2>
-      <p class="section-subtitle">Choose the package that fits your needs</p>
+      <h2 id="servicesHeading">Our Services</h2>
+      <p class="section-subtitle" id="servicesSubheading">Choose the package that fits your needs</p>
       <div id="servicesGrid" class="services-grid">
         <div class="muted text-center" style="padding:2rem">Loading services…</div>
       </div>
-      <p class="services-disclaimer">* Prices listed are base rates. Vehicles that are extremely dirty, heavily soiled, or require extra attention may be subject to an additional upcharge — we'll always let you know before getting started.</p>
+      <p class="services-disclaimer" id="servicesDisclaimer">* Prices listed are base rates. Vehicles that are extremely dirty, heavily soiled, or require extra attention may be subject to an additional upcharge — we'll always let you know before getting started.</p>
       <div class="text-center mt-3">
         <a href="booking.html" class="btn">Book an Appointment</a>
       </div>
@@ -72,8 +72,8 @@
 
   <section id="contact">
     <div class="container text-center">
-      <h2>Ready to Book?</h2>
-      <p class="section-subtitle">Book online or give us a call — we come to you.</p>
+      <h2 id="contactHeading">Ready to Book?</h2>
+      <p class="section-subtitle" id="contactSubheading">Book online or give us a call — we come to you.</p>
       <a id="contactPhone" href="#" class="contact-phone-link"></a>
       <br/><br/>
       <a href="booking.html" class="btn btn-lg">Book an Appointment</a>
@@ -100,84 +100,82 @@
     // Nav shadow on scroll
     const nav = document.getElementById("mainNav");
     window.addEventListener("scroll", () => nav.classList.toggle("scrolled", window.scrollY > 10), { passive: true });
-
     document.getElementById("year").textContent = new Date().getFullYear();
     document.getElementById("footerBrand").textContent = window.APP_CONFIG.business.name;
-    document.getElementById("heroTagline").textContent = window.APP_CONFIG.business.tagline;
-    const biz = window.APP_CONFIG.business;
-    const phoneHref = "tel:" + biz.phone.replace(/\D/g, "");
-    document.getElementById("navPhone").textContent = biz.phone;
-    document.getElementById("navPhone").href = phoneHref;
-    const cp = document.getElementById("contactPhone");
-    cp.textContent = biz.phone;
-    cp.href = phoneHref;
 
-    // Load editable About section
+    function applyPhone(phone) {
+      const href = "tel:" + (phone || "").replace(/\D/g, "");
+      const navEl = document.getElementById("navPhone");
+      const cpEl  = document.getElementById("contactPhone");
+      navEl.textContent = phone; navEl.href = href;
+      cpEl.textContent  = phone; cpEl.href  = href;
+    }
+    // Apply config defaults immediately so phone shows even before DB loads
+    applyPhone(window.APP_CONFIG.business.phone);
+
     (async function () {
       try {
         await DB.init();
-        const about = await DB.getAbout();
-        if (about) {
-          if (about.heading)    document.getElementById("aboutHeading").textContent    = about.heading;
-          if (about.subheading) document.getElementById("aboutSubheading").textContent = about.subheading;
-          if (about.cards && about.cards.length) {
-            document.getElementById("aboutCardsGrid").innerHTML = about.cards.map((c) =>
-              `<div class="card"><h3>${Utils.escapeHtml(c.heading || "")}</h3><p class="desc">${Utils.escapeHtml(c.body || "")}</p></div>`
-            ).join("");
-          }
+
+        // --- Site Settings ---
+        const s = await DB.getSiteSettings();
+        if (s.heroHeadline)       document.getElementById("heroHeadline").textContent       = s.heroHeadline;
+        if (s.heroTagline)        document.getElementById("heroTagline").textContent         = s.heroTagline;
+        if (s.servicesHeading)    document.getElementById("servicesHeading").textContent     = s.servicesHeading;
+        if (s.servicesSubheading) document.getElementById("servicesSubheading").textContent  = s.servicesSubheading;
+        if (s.servicesDisclaimer) document.getElementById("servicesDisclaimer").textContent  = s.servicesDisclaimer;
+        if (s.contactHeading)     document.getElementById("contactHeading").textContent      = s.contactHeading;
+        if (s.contactSubheading)  document.getElementById("contactSubheading").textContent   = s.contactSubheading;
+        if (s.phone)              applyPhone(s.phone);
+        if (s.trustItems && s.trustItems.length) {
+          document.getElementById("trustItems").innerHTML = s.trustItems.map((t) =>
+            `<div class="trust-item"><span class="trust-icon">✓</span> <strong>${Utils.escapeHtml(t)}</strong></div>`
+          ).join("");
         }
+
+        // --- About Section ---
+        const about = await DB.getAbout();
+        if (about.heading)                  document.getElementById("aboutHeading").textContent    = about.heading;
+        if (about.subheading)               document.getElementById("aboutSubheading").textContent = about.subheading;
+        if (about.cards && about.cards.length) {
+          document.getElementById("aboutCardsGrid").innerHTML = about.cards.map((c) =>
+            `<div class="card"><h3>${Utils.escapeHtml(c.heading || "")}</h3><p class="desc">${Utils.escapeHtml(c.body || "")}</p></div>`
+          ).join("");
+        }
+
+        // --- Services Grid ---
+        const grid = document.getElementById("servicesGrid");
+        const services = await DB.listActiveServices();
+        if (services.length === 0) {
+          grid.innerHTML = '<div class="muted text-center" style="padding:2rem">No services listed yet — check back soon.</div>';
+          return;
+        }
+        const groups = {};
+        for (const svc of services) {
+          const n = (svc.name || "").toLowerCase();
+          const key = svc.vehicleType ||
+            (n.includes("truck") || n.includes("suv") ? "truck-suv" :
+             n.includes("sedan") || n.includes("car") ? "sedan" : "other");
+          if (!groups[key]) groups[key] = { label: "", services: [] };
+          groups[key].services.push(svc);
+        }
+        if (groups["truck-suv"]) groups["truck-suv"].label = "🚛 Trucks & SUVs";
+        if (groups["sedan"])     groups["sedan"].label     = "🚗 Sedans";
+        if (groups["other"])     groups["other"].label     = "All Vehicles";
+        const order = ["truck-suv", "sedan", "other"];
+        grid.innerHTML = order.filter((k) => groups[k]).map((k) => {
+          const { label, services: svcs } = groups[k];
+          const rows = svcs.map((svc) => `
+            <div class="vehicle-price-row">
+              <span>${Utils.escapeHtml(svc.serviceType === "exterior" ? "Exterior Wash" : svc.serviceType === "interior" ? "Interior Detail" : svc.name)}</span>
+              <span class="vehicle-price-val">${Utils.formatCurrency(svc.price)}</span>
+            </div>`).join("");
+          return `<div class="card vehicle-card"><h3>${label}</h3><div class="vehicle-price-list">${rows}</div></div>`;
+        }).join("");
+
       } catch (e) {
-        console.warn("Could not load about section:", e.message);
+        console.warn("Could not load page content:", e.message);
       }
-    })();
-
-    (async function () {
-      const grid = document.getElementById("servicesGrid");
-      let services = [];
-      try {
-        await DB.init();
-        services = await DB.listActiveServices();
-      } catch (e) {
-        console.warn("Could not load services from database:", e.message);
-      }
-      if (services.length === 0) {
-        grid.innerHTML = '<div class="muted text-center" style="padding:2rem">No services listed yet — check back soon.</div>';
-        return;
-      }
-
-      // Group by vehicle type for display
-      const groups = {};
-      for (const s of services) {
-        // Detect vehicle type from name if not explicitly set
-        const n = (s.name || "").toLowerCase();
-        const key = s.vehicleType ||
-          (n.includes("truck") || n.includes("suv") ? "truck-suv" :
-           n.includes("sedan") || n.includes("car") ? "sedan" : "other");
-        if (!groups[key]) groups[key] = { label: "", services: [] };
-        groups[key].services.push(s);
-      }
-      // Set display labels
-      if (groups["truck-suv"]) groups["truck-suv"].label = "🚛 Trucks & SUVs";
-      if (groups["sedan"])     groups["sedan"].label     = "🚗 Sedans";
-      if (groups["other"])     groups["other"].label     = "All Vehicles";
-
-      const order = ["truck-suv", "sedan", "other"];
-      const cards = order.filter(k => groups[k]).map(k => {
-        const { label, services: svcs } = groups[k];
-        const rows = svcs.map(s => `
-          <div class="vehicle-price-row">
-            <span>${Utils.escapeHtml(s.serviceType === "exterior" ? "Exterior Wash" : s.serviceType === "interior" ? "Interior Detail" : s.name)}</span>
-            <span class="vehicle-price-val">${Utils.formatCurrency(s.price)}</span>
-          </div>
-        `).join("");
-        return `
-          <div class="card vehicle-card">
-            <h3>${label}</h3>
-            <div class="vehicle-price-list">${rows}</div>
-          </div>
-        `;
-      });
-      grid.innerHTML = cards.join("");
     })();
   </script>
 </body>

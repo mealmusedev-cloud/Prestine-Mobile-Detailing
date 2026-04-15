@@ -222,6 +222,31 @@
     },
     setAvailability: (data) => backend().setSingleton("availability", data),
 
+    // site settings (hero, trust bar, business info, section headings)
+    getSiteSettings: async () => {
+      const stored = await backend().getSingleton("siteSettings");
+      const defaults = {
+        businessName:       "Pristine Mobile Detailing",
+        phone:              "(360) 580-4840",
+        email:              "",
+        heroHeadline:       "Your Car Deserves to Look Its Best",
+        heroTagline:        "Premium detailing brought directly to your door. Book online in seconds — pay in person after we're done.",
+        servicesHeading:    "Our Services",
+        servicesSubheading: "Choose the package that fits your needs",
+        servicesDisclaimer: "* Prices listed are base rates. Vehicles that are extremely dirty, heavily soiled, or require extra attention may be subject to an additional upcharge — we'll always let you know before getting started.",
+        contactHeading:     "Ready to Book?",
+        contactSubheading:  "Book online or give us a call — we come to you.",
+        trustItems: [
+          "We come to you",
+          "Pay after service — no upfront charge",
+          "Premium products only",
+          "Easy online booking"
+        ]
+      };
+      return stored ? { ...defaults, ...stored } : defaults;
+    },
+    setSiteSettings: (data) => backend().setSingleton("siteSettings", data),
+
     // about section
     getAbout: async () => {
       const stored = await backend().getSingleton("about");

@@ -1075,6 +1075,19 @@ td small { color: var(--text-muted); font-size: 0.78rem; }
 .checklist-template-item:hover { border-color: var(--border-light); }
 
 /* ============================================================
+   TRUST ITEM EDITOR (admin)
+   ============================================================ */
+.trust-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.trust-editor-row input {
+  flex: 1;
+}
+
+/* ============================================================
    ABOUT CARD EDITOR (admin)
    ============================================================ */
 .about-card-editor {
