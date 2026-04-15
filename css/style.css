@@ -418,12 +418,18 @@ section > h2 {
   letter-spacing: -0.02em;
 }
 .services-disclaimer {
+  display: block;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.82rem;
-  margin: 1.25rem auto 0;
-  max-width: 600px;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  font-style: italic;
+  margin: 1.5rem auto 0;
+  max-width: 560px;
+  line-height: 1.6;
+  padding: 0.65rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02);
 }
 
 /* ============================================================
