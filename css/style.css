@@ -347,15 +347,14 @@ section > h2 {
    SERVICE CARDS
    ============================================================ */
 .services-grid {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 1.25rem;
-  grid-template-columns: 1fr;
+  justify-content: center;
 }
-@media (min-width: 640px) {
-  .services-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (min-width: 900px) {
-  .services-grid { grid-template-columns: repeat(3, 1fr); }
+.services-grid .card {
+  flex: 1 1 300px;
+  max-width: 420px;
 }
 
 .card {

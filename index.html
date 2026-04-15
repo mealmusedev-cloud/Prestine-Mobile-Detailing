@@ -137,7 +137,11 @@
       // Group by vehicle type for display
       const groups = {};
       for (const s of services) {
-        const key = s.vehicleType || "other";
+        // Detect vehicle type from name if not explicitly set
+        const n = (s.name || "").toLowerCase();
+        const key = s.vehicleType ||
+          (n.includes("truck") || n.includes("suv") ? "truck-suv" :
+           n.includes("sedan") || n.includes("car") ? "sedan" : "other");
         if (!groups[key]) groups[key] = { label: "", services: [] };
         groups[key].services.push(s);
       }
