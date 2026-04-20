@@ -1248,3 +1248,141 @@ td small { color: var(--text-muted); font-size: 0.78rem; }
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
+
+/* ============================================================
+   RESPONSIVE — TABLET  ≤ 768px
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Nav: hide text links, keep Book Now button */
+  .nav-links a:not(.btn) { display: none; }
+
+  /* Hero */
+  .hero { padding: 3.5rem 1.25rem 4.25rem; }
+
+  /* Trust bar */
+  .trust-items { gap: 1rem; }
+
+  /* Sections */
+  section { padding: 3rem 0; }
+
+  /* Service cards: allow narrower */
+  .services-grid .card { flex: 1 1 260px; }
+
+  /* Admin availability grid */
+  .avail-top-row { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   RESPONSIVE — MOBILE  ≤ 540px
+   ============================================================ */
+@media (max-width: 540px) {
+  /* Base */
+  .container { padding: 0 1rem; }
+
+  /* Nav */
+  .nav-inner { padding: 0.75rem 1rem; gap: 0.5rem; }
+  .nav-brand { font-size: 0.95rem; }
+
+  /* Hero */
+  .hero { padding: 2.75rem 1rem 3.5rem; }
+  .hero p.lede { font-size: 0.95rem; }
+  .hero-cta { flex-direction: column; align-items: center; }
+  .hero-cta .btn-lg { width: 100%; max-width: 320px; }
+
+  /* Trust bar */
+  .trust-bar { padding: 1rem; }
+  .trust-items { gap: 0.6rem; justify-content: flex-start; }
+  .trust-item { font-size: 0.82rem; }
+
+  /* Sections */
+  section { padding: 2.25rem 0; }
+
+  /* Service cards: full-width stack */
+  .services-grid { gap: 0.75rem; }
+  .services-grid .card { flex: 1 1 100%; min-width: 0; }
+  .services-disclaimer { font-size: 0.75rem; margin: 1rem 0 0; }
+
+  /* Booking page */
+  .booking-page-wrap { padding: 1.25rem 1rem 3rem; }
+  .booking-section { padding: 1.1rem; }
+  .booking-section h2 { font-size: 1.05rem; margin-bottom: 1rem; }
+
+  /* Progress steps */
+  .steps { max-width: 100%; margin-bottom: 1.25rem; }
+  .step-label { font-size: 0.6rem; }
+  .step-dot { width: 24px; height: 24px; font-size: 0.68rem; }
+  .step-item:not(:last-child)::after { top: 11px; }
+
+  /* Date grid: tighter cells */
+  .date-grid { grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 0.35rem; }
+  .date-btn { padding: 0.6rem 0.25rem; }
+  .date-btn .dnum { font-size: 1.2rem; }
+  .date-btn .dow { font-size: 0.6rem; }
+  .date-btn .mon { font-size: 0.62rem; }
+
+  /* Slot grid */
+  .slot-grid { grid-template-columns: repeat(auto-fill, minmax(95px, 1fr)); gap: 0.45rem; }
+
+  /* Service selection: stack info above price */
+  .service-choice { flex-direction: column; align-items: flex-start; gap: 0.35rem; padding: 0.85rem 1rem; }
+  .service-choice-meta { text-align: left; display: flex; gap: 0.75rem; align-items: baseline; }
+  .service-choice-price { font-size: 1.1rem; }
+
+  /* Confirmation */
+  .confirmation { padding: 1.75rem 1rem; }
+
+  /* Contact form rows: stack to single column */
+  .row { flex-direction: column; gap: 0; }
+  .row > * { min-width: 0; }
+
+  /* Admin header */
+  .admin-header { padding: 0.7rem 1rem; }
+  .admin-header-brand { font-size: 0.85rem; }
+  .admin-body { padding: 1.1rem 1rem; }
+
+  /* Filters: stack vertically */
+  .filters { flex-direction: column; gap: 0.5rem; }
+  .filters .form-row { min-width: 0; width: 100%; }
+
+  /* Modal */
+  .modal { padding: 1.1rem; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .btn { width: 100%; justify-content: center; }
+
+  /* Working hours: wrap time inputs below day toggle */
+  .hours-row { flex-wrap: wrap; padding: 0.5rem 0.75rem; gap: 0.5rem; }
+  .hours-row .day-name { flex: 1; width: auto; }
+  .hours-row .day-times { width: 100%; order: 3; }
+  .hours-row .day-times input[type="time"] { flex: 1; width: auto !important; min-width: 0; }
+  .hours-row .day-closed-label { order: 3; width: 100%; }
+
+  /* Auth box */
+  .auth-box { padding: 1.5rem 1.25rem; }
+
+  /* Footer */
+  .footer { padding: 1.25rem 1rem; }
+}
+
+/* ============================================================
+   RESPONSIVE — SMALL MOBILE  ≤ 375px
+   ============================================================ */
+@media (max-width: 375px) {
+  .nav-brand { font-size: 0.88rem; }
+  .btn-sm { padding: 0.32rem 0.7rem; font-size: 0.78rem; }
+  .date-grid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+  .slot-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-tag { font-size: 0.7rem; }
+  .auth-box { padding: 1.25rem 1rem; }
+}
+
+/* ============================================================
+   RESPONSIVE — LANDSCAPE PHONE  (short + wide)
+   ============================================================ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero { padding: 2rem 1.25rem 2.5rem; }
+  .hero-tag { margin-bottom: 0.75rem; }
+  .hero h1 { font-size: clamp(1.6rem, 4vw, 2.4rem); margin-bottom: 0.5rem; }
+  .hero p.lede { margin-bottom: 1.25rem; }
+  .auth-page { align-items: flex-start; padding-top: 1rem; padding-bottom: 1rem; }
+  .auth-box { margin: auto; }
+}
