@@ -107,7 +107,13 @@
   async function renderSlots() {
     const slotGrid = document.getElementById("slotGrid");
     slotGrid.innerHTML = '<div class="muted" style="padding:1rem 0">Finding available times…</div>';
-    const bookings = await DB.listBookingsByDate(state.date);
+    let bookings = [];
+    try {
+      bookings = await DB.listBookingsByDate(state.date);
+    } catch (e) {
+      // If we can't read existing bookings (e.g. permission denied), proceed with no conflicts.
+      console.warn("Could not load bookings for conflict check:", e.message);
+    }
     const slots = Utils.generateAvailableSlots(state.date, state.service, state.availability, bookings);
     if (slots.length === 0) {
       slotGrid.innerHTML = '<div class="muted" style="padding:1rem 0">No available times on this day — please pick another date.</div>';
