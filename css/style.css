@@ -125,9 +125,7 @@ p  { margin: 0 0 1em; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
-  max-width: var(--maxw);
-  margin: 0 auto;
+  padding: 1rem 2.5rem;
   gap: 1rem;
 }
 .nav-brand {
@@ -148,6 +146,8 @@ p  { margin: 0 0 1em; }
   transition: color 0.15s ease, background 0.15s ease;
 }
 .nav-links a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-links a.btn { color: #ffffff; font-weight: 700; }
+.nav-links a.btn:hover { color: #ffffff; background: transparent; }
 
 /* ============================================================
    BUTTONS
@@ -159,7 +159,7 @@ p  { margin: 0 0 1em; }
   gap: 0.4rem;
   padding: 0.7rem 1.4rem;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #03111d;
+  color: #ffffff;
   border: none;
   border-radius: var(--radius-sm);
   font-weight: 700;
