@@ -25,7 +25,7 @@
     },
     async add(col, data) {
       const arr = this._read(col);
-      const id = data.id || "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+      const id = data.id || "id_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
       const item = { ...data, id, createdAt: data.createdAt || new Date().toISOString() };
       arr.push(item);
       this._write(col, arr);
@@ -72,8 +72,12 @@
       return { id: ref.id, ...payload };
     },
     async update(col, id, patch) {
-      await window.firebaseDb.collection(col).doc(id).update(patch);
-      return await this.get(col, id);
+      const ref = window.firebaseDb.collection(col).doc(id);
+      // Verify the document exists before updating to surface clear errors
+      const doc = await ref.get();
+      if (!doc.exists) throw new Error("Record not found: " + col + "/" + id);
+      await ref.update(patch);
+      return { id: doc.id, ...doc.data(), ...patch };
     },
     async remove(col, id) {
       await window.firebaseDb.collection(col).doc(id).delete();
@@ -162,9 +166,8 @@
   // ---------- Public API ----------
   const DB = {
     async init() {
-      // Seed defaults the first time the app runs.
-      // In Firebase mode, writes require admin auth — seed is skipped if not authorised.
-      // The admin can add services manually via the admin panel.
+      // Seed defaults the first time the app runs in localStorage mode.
+      // In Firebase mode, writes require admin auth — skipped here.
       try {
         const services = await backend().list("services");
         if (services.length === 0 && window.APP_CONFIG.useLocalFallback) {
@@ -175,49 +178,57 @@
       }
       try {
         const avail = await backend().getSingleton("availability");
-        if (!avail) await backend().setSingleton("availability", DEFAULT_AVAILABILITY);
+        if (!avail && window.APP_CONFIG.useLocalFallback) {
+          await backend().setSingleton("availability", DEFAULT_AVAILABILITY);
+        }
       } catch (e) {
         console.warn("[DB.init] Could not seed availability:", e.message);
       }
     },
 
     // services
-    listServices: () => backend().list("services"),
+    listServices:      ()       => backend().list("services"),
     listActiveServices: async () =>
       (await backend().list("services")).filter((s) => s.active !== false),
-    getService: (id) => backend().get("services", id),
-    addService: (data) => backend().add("services", data),
-    updateService: (id, patch) => backend().update("services", id, patch),
-    removeService: (id) => backend().remove("services", id),
+    getService:    (id)         => backend().get("services", id),
+    addService:    (data)       => backend().add("services", data),
+    updateService: (id, patch)  => backend().update("services", id, patch),
+    removeService: (id)         => backend().remove("services", id),
 
     // bookings
-    listBookings: () => backend().list("bookings"),
+    listBookings:       ()      => backend().list("bookings"),
     listBookingsByDate: async (date) =>
       (await backend().list("bookings")).filter((b) => b.date === date),
-    addBooking: (data) => backend().add("bookings", data),
-    updateBooking: (id, patch) => backend().update("bookings", id, patch),
-    removeBooking: (id) => backend().remove("bookings", id),
+    addBooking:    (data)       => backend().add("bookings", data),
+    updateBooking: (id, patch)  => backend().update("bookings", id, patch),
+    removeBooking: (id)         => backend().remove("bookings", id),
 
     // customers
-    listCustomers: () => backend().list("customers"),
-    getCustomer: (id) => backend().get("customers", id),
+    listCustomers:  ()          => backend().list("customers"),
+    getCustomer:    (id)        => backend().get("customers", id),
     findCustomerByEmail: async (email) => {
-      if (!email) return null;
+      if (!email || typeof email !== "string") return null;
       const all = await backend().list("customers");
       return all.find((c) => (c.email || "").toLowerCase() === email.toLowerCase()) || null;
     },
-    addCustomer: (data) => backend().add("customers", data),
+    addCustomer:    (data)      => backend().add("customers", data),
     updateCustomer: (id, patch) => backend().update("customers", id, patch),
-    removeCustomer: (id) => backend().remove("customers", id),
+    removeCustomer: (id)        => backend().remove("customers", id),
 
-    // availability — always merge with defaults so new fields appear after upgrades
+    // availability — always merge with full defaults so new fields appear after upgrades
+    // and so a partially-written record never leaves required fields undefined.
     getAvailability: async () => {
       const stored = await backend().getSingleton("availability");
       if (!stored) return { ...DEFAULT_AVAILABILITY };
+      // Deep-merge: stored values win, but any missing key falls back to defaults
       return {
-        bufferMinutes: DEFAULT_AVAILABILITY.bufferMinutes,
-        checklistTemplate: DEFAULT_AVAILABILITY.checklistTemplate,
-        ...stored
+        ...DEFAULT_AVAILABILITY,
+        ...stored,
+        // Always deep-merge workingHours so missing days fall back to defaults
+        workingHours: {
+          ...DEFAULT_AVAILABILITY.workingHours,
+          ...(stored.workingHours || {})
+        }
       };
     },
     setAvailability: (data) => backend().setSingleton("availability", data),
@@ -267,6 +278,8 @@
     _resetAll() {
       COLLECTIONS.forEach((c) => localStorage.removeItem(LS_PREFIX + c));
       localStorage.removeItem(LS_PREFIX + "singleton_availability");
+      localStorage.removeItem(LS_PREFIX + "singleton_siteSettings");
+      localStorage.removeItem(LS_PREFIX + "singleton_about");
     }
   };
 

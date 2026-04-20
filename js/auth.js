@@ -68,32 +68,45 @@ window.Auth = (function () {
   }
 
   // Call at the top of every admin page.
-  // Hides the page until auth is confirmed — any error forces redirect to login.
+  // Returns a Promise that resolves once Firebase confirms a valid admin
+  // session, or rejects (and redirects to login) if not authenticated.
+  // All admin page logic should be deferred until this resolves.
   function requireAdmin() {
     document.body.style.visibility = "hidden";
-    try {
-      if (window.APP_CONFIG.useLocalFallback) {
-        if (!isAuthed()) {
-          window.location.replace("login.html");
-        } else {
-          document.body.style.visibility = "";
-        }
-        return;
-      }
-      window.firebaseAuth.onAuthStateChanged((user) => {
-        try {
-          if (!user || !isAdminEmail(user.email)) {
+    return new Promise((resolve, reject) => {
+      try {
+        if (window.APP_CONFIG.useLocalFallback) {
+          if (!isAuthed()) {
             window.location.replace("login.html");
+            reject(new Error("Not authenticated"));
           } else {
             document.body.style.visibility = "";
+            resolve();
           }
-        } catch (e) {
-          window.location.replace("login.html");
+          return;
         }
-      });
-    } catch (e) {
-      window.location.replace("login.html");
-    }
+        // onAuthStateChanged fires once immediately with the current user
+        // (or null), so this is guaranteed to resolve/reject exactly once.
+        const unsubscribe = window.firebaseAuth.onAuthStateChanged((user) => {
+          unsubscribe(); // stop listening after first response
+          try {
+            if (!user || !isAdminEmail(user.email)) {
+              window.location.replace("login.html");
+              reject(new Error("Not authenticated"));
+            } else {
+              document.body.style.visibility = "";
+              resolve();
+            }
+          } catch (e) {
+            window.location.replace("login.html");
+            reject(e);
+          }
+        });
+      } catch (e) {
+        window.location.replace("login.html");
+        reject(e);
+      }
+    });
   }
 
   return { login, logout, isAuthed, requireAdmin };

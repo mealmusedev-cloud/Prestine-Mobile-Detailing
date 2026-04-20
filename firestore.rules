@@ -2,55 +2,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ──────────────────────────────────────────────────────────────
-    // SERVICES
-    // Anyone can read (booking page + landing page need service list).
-    // Only authenticated admins can create / update / delete.
-    // ──────────────────────────────────────────────────────────────
+    // ── Admin check ───────────────────────────────────────────────
+    // Only these verified Google accounts may perform admin writes.
+    // Enforced server-side — the client-side email check in auth.js
+    // is a UX convenience only; this rule is the real gate.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'pristin3mobil3d3tailing2026@gmail.com',
+          'haydenfuhrer2@gmail.com'
+        ];
+    }
+
+    // ── SERVICES ──────────────────────────────────────────────────
+    // Anyone can read (landing page + booking page load services).
+    // Only verified admins can create / update / delete.
     match /services/{id} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // BOOKINGS
-    // Anyone can create a booking (public booking form).
-    //   → status must be "pending" on create (only admins promote it)
-    //   → required fields are validated server-side here
-    // Only authenticated admins can read, update, or delete.
-    // ──────────────────────────────────────────────────────────────
+    // ── BOOKINGS ──────────────────────────────────────────────────
+    // Public read is required so the booking page can detect
+    // occupied slots when generating available times.
+    // Anyone can create a validated booking (public form).
+    // Only verified admins can update or delete.
     match /bookings/{id} {
-      allow read: if true;
+      allow read:   if true;
       allow create: if isValidBooking(request.resource.data);
-      allow update, delete: if request.auth != null;
+      allow update, delete: if isAdmin();
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // CUSTOMERS
-    // Public read is required because the booking form calls
-    // findCustomerByEmail() to avoid creating duplicate records.
-    // Anyone can create a customer record (validated).
-    // Only authenticated admins can update or delete.
-    // ──────────────────────────────────────────────────────────────
+    // ── CUSTOMERS ─────────────────────────────────────────────────
+    // Public read is required so the booking form can find an
+    // existing customer by email to avoid duplicates.
+    // Anyone can create a validated customer record.
+    // Only verified admins can update or delete.
     match /customers/{id} {
-      allow read: if true;
+      allow read:   if true;
       allow create: if isValidCustomer(request.resource.data);
-      allow update, delete: if request.auth != null;
+      allow update, delete: if isAdmin();
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // SINGLETONS  (stores availability config under doc id "availability")
-    // Public read so the booking page can show available time slots.
-    // Only authenticated admins can write.
-    // ──────────────────────────────────────────────────────────────
+    // ── SINGLETONS (availability, siteSettings, about) ────────────
+    // Public read so the booking page can load availability config.
+    // Only verified admins can write.
     match /singletons/{id} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read:  if true;
+      allow write: if isAdmin();
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // VALIDATION HELPERS
-    // ──────────────────────────────────────────────────────────────
+    // ── Validation helpers ────────────────────────────────────────
 
     function isValidBooking(data) {
       return
@@ -61,17 +64,25 @@ service cloud.firestore {
         ])
         // New bookings must start as "pending" — only admins can promote
         && data.status == 'pending'
-        // Name: non-empty string, 2–100 chars
+        // serviceId: non-empty string
+        && data.serviceId is string
+        && data.serviceId.size() > 0
+        // Name: 2–100 chars
         && data.customerName is string
         && data.customerName.size() >= 2
         && data.customerName.size() <= 100
-        // Email: must contain "@"
+        // Email: must look like an email address
         && data.customerEmail is string
-        && data.customerEmail.size() >= 3
-        && data.customerEmail.matches('.*@.*')
+        && data.customerEmail.size() >= 5
+        && data.customerEmail.matches('.*@.*\\..*')
         // Date: YYYY-MM-DD (10 chars)
         && data.date is string
-        && data.date.size() == 10;
+        && data.date.size() == 10
+        // Times: HH:MM (5 chars)
+        && data.startTime is string
+        && data.startTime.size() == 5
+        && data.endTime is string
+        && data.endTime.size() == 5;
     }
 
     function isValidCustomer(data) {
@@ -81,8 +92,8 @@ service cloud.firestore {
         && data.name.size() >= 2
         && data.name.size() <= 100
         && data.email is string
-        && data.email.size() >= 3
-        && data.email.matches('.*@.*');
+        && data.email.size() >= 5
+        && data.email.matches('.*@.*\\..*');
     }
   }
 }

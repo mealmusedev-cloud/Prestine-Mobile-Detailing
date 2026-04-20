@@ -155,14 +155,32 @@
       const custData = {
         name: document.getElementById("custName").value.trim(),
         phone: document.getElementById("custPhone").value.trim(),
-        email: document.getElementById("custEmail").value.trim(),
+        email: document.getElementById("custEmail").value.trim().toLowerCase(),
         address: document.getElementById("custAddress").value.trim(),
         notes: document.getElementById("custNotes").value.trim()
       };
 
+      // Client-side validation — mirrors Firestore server-side rules.
+      if (!custData.name || custData.name.length < 2) {
+        throw new Error("Please enter your full name (at least 2 characters).");
+      }
+      if (custData.name.length > 100) {
+        throw new Error("Name must be 100 characters or fewer.");
+      }
+      if (!custData.email || custData.email.length < 5 || !custData.email.includes("@") || !custData.email.includes(".")) {
+        throw new Error("Please enter a valid email address.");
+      }
+      if (!custData.address) {
+        throw new Error("Please enter your service address so we know where to come.");
+      }
+
       let customer = await DB.findCustomerByEmail(custData.email);
       if (customer) {
-        await DB.updateCustomer(customer.id, { name: custData.name, phone: custData.phone, address: custData.address });
+        await DB.updateCustomer(customer.id, {
+          name: custData.name,
+          phone: custData.phone,
+          address: custData.address
+        });
       } else {
         customer = await DB.addCustomer(custData);
       }
@@ -174,9 +192,10 @@
         serviceName: state.service.name,
         servicePrice: state.service.price,
         customerId: customer.id,
-        customerName: customer.name,
-        customerPhone: customer.phone,
-        customerEmail: customer.email,
+        // Always use custData (fresh form values) — not the stale DB record.
+        customerName: custData.name,
+        customerPhone: custData.phone,
+        customerEmail: custData.email,
         address: custData.address,
         notes: custData.notes,
         date: state.date,
@@ -194,8 +213,8 @@
         `Confirmation: <code>${booking.id}</code>`;
       show(5);
     } catch (err) {
-      console.error(err);
-      errEl.textContent = "Something went wrong: " + err.message;
+      console.error("[booking] submit error:", err);
+      errEl.textContent = err.message || "Something went wrong. Please try again.";
       btn.disabled = false;
       btn.textContent = "Confirm Booking →";
     }

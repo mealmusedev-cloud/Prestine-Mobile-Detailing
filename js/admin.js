@@ -1,11 +1,18 @@
-// Admin dashboard — tabs: Bookings, Calendar, Services, Customers, Availability.
+// Admin dashboard — tabs: Bookings, Calendar, Services, Customers, Availability, About, Settings.
 
 (async function () {
-  Auth.requireAdmin();
+  // Defer ALL execution until Firebase confirms a valid admin session.
+  // requireAdmin() now returns a Promise — if auth fails it redirects and rejects.
+  try {
+    await Auth.requireAdmin();
+  } catch {
+    return; // redirect already handled inside requireAdmin()
+  }
+
   await DB.init();
 
   // ---------- Tabs ----------
-  const tabBtns = document.querySelectorAll("#adminTabs button");
+  const tabBtns     = document.querySelectorAll("#adminTabs button");
   const tabSections = document.querySelectorAll(".tab-content");
 
   function switchTab(name) {
@@ -39,6 +46,24 @@
 
   function closeModal() {
     document.getElementById("modal").classList.remove("show");
+    clearModalError();
+  }
+
+  function showModalError(msg) {
+    let el = document.getElementById("modalErrorMsg");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "modalErrorMsg";
+      el.className = "error-msg";
+      el.style.cssText = "margin-top:0.75rem;justify-content:flex-start";
+      document.getElementById("modalActions").insertAdjacentElement("beforebegin", el);
+    }
+    el.textContent = "⚠ " + msg;
+  }
+
+  function clearModalError() {
+    const el = document.getElementById("modalErrorMsg");
+    if (el) el.remove();
   }
 
   document.getElementById("modal").addEventListener("click", (e) => {
@@ -50,10 +75,14 @@
   // ======================================================================
   async function loadBookings() {
     const all = await DB.listBookings();
-    const dateFilter = document.getElementById("fBookDate").value;
+    const dateFilter   = document.getElementById("fBookDate").value;
     const statusFilter = document.getElementById("fBookStatus").value;
-    let list = all.sort((a, b) => (a.date + a.startTime).localeCompare(b.date + b.startTime));
-    if (dateFilter) list = list.filter((b) => b.date === dateFilter);
+    let list = all.sort((a, b) => {
+      const ka = (a.date || "") + (a.startTime || "");
+      const kb = (b.date || "") + (b.startTime || "");
+      return ka.localeCompare(kb);
+    });
+    if (dateFilter)   list = list.filter((b) => b.date === dateFilter);
     if (statusFilter) list = list.filter((b) => b.status === statusFilter);
 
     const wrap = document.getElementById("bookingsTableWrap");
@@ -64,13 +93,13 @@
     wrap.innerHTML = `<div class="table-wrap"><table>
       <thead><tr><th>Date</th><th>Time</th><th>Service</th><th>Customer</th><th>Status</th><th>Progress</th><th></th></tr></thead>
       <tbody>${list.map((b) => {
-        const cl = b.checklist || [];
-        const done = cl.filter((x) => x.done).length;
+        const cl    = b.checklist || [];
+        const done  = cl.filter((x) => x.done).length;
         const total = cl.length;
         const progress = total ? `${done}/${total}` : "—";
         return `<tr>
-          <td>${Utils.escapeHtml(b.date)}</td>
-          <td>${Utils.formatTime12h(b.startTime)}</td>
+          <td>${Utils.escapeHtml(b.date || "—")}</td>
+          <td>${Utils.formatTime12h(b.startTime || "")}</td>
           <td>${Utils.escapeHtml(b.serviceName || "—")}</td>
           <td>${Utils.escapeHtml(b.customerName || "—")}<br/><small class="muted">${Utils.escapeHtml(b.customerPhone || "")}</small></td>
           <td><span class="badge badge-${b.status}">${b.status}</span></td>
@@ -87,14 +116,18 @@
   document.getElementById("fBookDate").addEventListener("change", loadBookings);
   document.getElementById("fBookStatus").addEventListener("change", loadBookings);
   document.getElementById("clearBookFilters").addEventListener("click", () => {
-    document.getElementById("fBookDate").value = "";
+    document.getElementById("fBookDate").value   = "";
     document.getElementById("fBookStatus").value = "";
     loadBookings();
   });
 
   async function viewBooking(id) {
-    const b = (await DB.listBookings()).find((x) => x.id === id);
-    if (!b) return;
+    const all = await DB.listBookings();
+    const b = all.find((x) => x.id === id);
+    if (!b) {
+      showModalError("Booking not found — it may have been deleted.");
+      return;
+    }
     const checklist = b.checklist || [];
 
     const checklistHtml = checklist.length
@@ -108,9 +141,9 @@
       : '<span class="muted">No checklist items.</span>';
 
     const body = `
-      <div class="form-row"><label>Service</label><p>${Utils.escapeHtml(b.serviceName)} — ${Utils.formatCurrency(b.servicePrice || 0)}</p></div>
+      <div class="form-row"><label>Service</label><p>${Utils.escapeHtml(b.serviceName || "—")} — ${Utils.formatCurrency(b.servicePrice || 0)}</p></div>
       <div class="form-row"><label>Date &amp; Time</label><p>${Utils.formatDateLong(b.date)} at ${Utils.formatTime12h(b.startTime)} – ${Utils.formatTime12h(b.endTime)}</p></div>
-      <div class="form-row"><label>Customer</label><p>${Utils.escapeHtml(b.customerName)}<br/>${Utils.escapeHtml(b.customerPhone || "")} · ${Utils.escapeHtml(b.customerEmail || "")}</p></div>
+      <div class="form-row"><label>Customer</label><p>${Utils.escapeHtml(b.customerName || "—")}<br/>${Utils.escapeHtml(b.customerPhone || "")} · ${Utils.escapeHtml(b.customerEmail || "")}</p></div>
       <div class="form-row"><label>Address</label><p>${Utils.escapeHtml(b.address || "—")}</p></div>
       <div class="form-row"><label>Customer notes</label><p class="muted">${Utils.escapeHtml(b.notes || "—")}</p></div>
       <div class="form-row"><label>Status</label>
@@ -120,45 +153,50 @@
           ).join("")}
         </select>
       </div>
-
       <div class="form-row">
         <label>Job Checklist</label>
         <div id="modalChecklist" class="checklist-list">${checklistHtml}</div>
       </div>
-
       <div class="form-row">
         <label>Admin Notes</label>
         <textarea id="modalAdminNotes" placeholder="Internal notes about this job…">${Utils.escapeHtml(b.adminNotes || "")}</textarea>
       </div>
-
-      <div class="form-row"><label>Booking ID</label><p class="muted"><code>${b.id}</code></p></div>`;
+      <div class="form-row"><label>Booking ID</label><p class="muted"><code>${Utils.escapeHtml(b.id)}</code></p></div>`;
 
     openModal("Booking Details", body, [
       {
         label: "Save",
         fn: async () => {
-          // Read updated checklist state from DOM
-          const updatedChecklist = checklist.map((item, i) => {
-            const el = document.querySelector(`.cl-check[data-idx="${i}"]`);
-            return { ...item, done: el ? el.checked : item.done };
-          });
-          await DB.updateBooking(id, {
-            status: document.getElementById("modalBookingStatus").value,
-            checklist: updatedChecklist,
-            adminNotes: document.getElementById("modalAdminNotes").value.trim()
-          });
-          closeModal();
-          loadBookings();
+          clearModalError();
+          try {
+            const updatedChecklist = checklist.map((item, i) => {
+              const el = document.querySelector(`.cl-check[data-idx="${i}"]`);
+              return { ...item, done: el ? el.checked : item.done };
+            });
+            await DB.updateBooking(id, {
+              status:      document.getElementById("modalBookingStatus").value,
+              checklist:   updatedChecklist,
+              adminNotes:  document.getElementById("modalAdminNotes").value.trim()
+            });
+            closeModal();
+            loadBookings();
+          } catch (e) {
+            showModalError("Failed to save: " + e.message);
+          }
         }
       },
       {
         label: "Delete",
         cls: "btn-danger btn-sm",
         fn: async () => {
-          if (confirm("Delete this booking permanently?")) {
+          if (!confirm("Delete this booking permanently?")) return;
+          clearModalError();
+          try {
             await DB.removeBooking(id);
             closeModal();
             loadBookings();
+          } catch (e) {
+            showModalError("Failed to delete: " + e.message);
           }
         }
       },
@@ -177,11 +215,16 @@
   // New booking from admin
   document.getElementById("newBookingBtn").addEventListener("click", async () => {
     const services = await DB.listActiveServices();
-    const avail = await DB.getAvailability();
+    const avail    = await DB.getAvailability();
+    if (services.length === 0) {
+      openModal("New Booking", '<p class="muted">No active services. Create a service first.</p>',
+        [{ label: "Close", cls: "btn-secondary", fn: closeModal }]);
+      return;
+    }
     const body = `
       <div class="form-row"><label>Service</label>
         <select id="nbService">${services.map((s) =>
-          `<option value="${s.id}" data-dur="${s.durationMinutes}" data-price="${s.price}">${Utils.escapeHtml(s.name)} (${Utils.formatCurrency(s.price)})</option>`
+          `<option value="${s.id}" data-name="${Utils.escapeHtml(s.name)}" data-dur="${s.durationMinutes || 60}" data-price="${s.price || 0}">${Utils.escapeHtml(s.name)} (${Utils.formatCurrency(s.price)})</option>`
         ).join("")}</select></div>
       <div class="form-row"><label>Date</label><input id="nbDate" type="date" required /></div>
       <div class="form-row"><label>Start time</label><input id="nbStart" type="time" required /></div>
@@ -196,41 +239,64 @@
       {
         label: "Create Booking",
         fn: async () => {
-          const sel = document.getElementById("nbService");
-          const opt = sel.options[sel.selectedIndex];
-          const dur = Number(opt.dataset.dur) || 60;
-          const startStr = document.getElementById("nbStart").value;
-          const endMin = Utils.timeToMinutes(startStr) + dur;
-          const checklist = (avail.checklistTemplate || []).map((label) => ({ label, done: false }));
+          clearModalError();
+          // Validate required fields
+          const dateVal  = document.getElementById("nbDate").value.trim();
+          const startVal = document.getElementById("nbStart").value.trim();
+          const nameVal  = document.getElementById("nbName").value.trim();
+          if (!dateVal)  { showModalError("Date is required.");       return; }
+          if (!startVal) { showModalError("Start time is required."); return; }
+          if (!nameVal)  { showModalError("Customer name is required."); return; }
 
-          const custData = {
-            name: document.getElementById("nbName").value.trim(),
-            phone: document.getElementById("nbPhone").value.trim(),
-            email: document.getElementById("nbEmail").value.trim(),
-            address: document.getElementById("nbAddress").value.trim()
-          };
-          let customer = await DB.findCustomerByEmail(custData.email);
-          if (!customer) customer = await DB.addCustomer(custData);
+          const sel     = document.getElementById("nbService");
+          const opt     = sel.options[sel.selectedIndex];
+          const dur     = Math.max(1, Number(opt.dataset.dur) || 60);
+          const startMin = Utils.timeToMinutes(startVal);
+          if (isNaN(startMin)) { showModalError("Invalid start time."); return; }
+          const endMin  = startMin + dur;
 
-          await DB.addBooking({
-            serviceId: sel.value,
-            serviceName: opt.textContent.split(" (")[0],
-            servicePrice: Number(opt.dataset.price),
-            customerId: customer.id,
-            customerName: custData.name,
-            customerPhone: custData.phone,
-            customerEmail: custData.email,
-            address: custData.address,
-            notes: document.getElementById("nbNotes").value.trim(),
-            date: document.getElementById("nbDate").value,
-            startTime: startStr,
-            endTime: Utils.minutesToTime(endMin),
-            status: document.getElementById("nbStatus").value,
-            checklist,
-            adminNotes: ""
-          });
-          closeModal();
-          loadBookings();
+          try {
+            const checklist = (avail.checklistTemplate || []).map((label) => ({ label, done: false }));
+            const custData = {
+              name:    nameVal,
+              phone:   document.getElementById("nbPhone").value.trim(),
+              email:   document.getElementById("nbEmail").value.trim(),
+              address: document.getElementById("nbAddress").value.trim()
+            };
+
+            // Admin bookings don't need to go through customer dedup
+            let customer;
+            if (custData.email) {
+              customer = await DB.findCustomerByEmail(custData.email);
+            }
+            if (!customer) {
+              customer = await DB.addCustomer({ ...custData, name: custData.name, email: custData.email || "noemail@admin.local" });
+            } else {
+              await DB.updateCustomer(customer.id, { name: custData.name, phone: custData.phone, address: custData.address });
+            }
+
+            await DB.addBooking({
+              serviceId:     sel.value,
+              serviceName:   opt.dataset.name,
+              servicePrice:  Number(opt.dataset.price) || 0,
+              customerId:    customer.id,
+              customerName:  custData.name,
+              customerPhone: custData.phone,
+              customerEmail: custData.email || "",
+              address:       custData.address,
+              notes:         document.getElementById("nbNotes").value.trim(),
+              date:          dateVal,
+              startTime:     startVal,
+              endTime:       Utils.minutesToTime(endMin),
+              status:        document.getElementById("nbStatus").value,
+              checklist,
+              adminNotes:    ""
+            });
+            closeModal();
+            loadBookings();
+          } catch (e) {
+            showModalError("Failed to create booking: " + e.message);
+          }
         }
       },
       { label: "Cancel", cls: "btn-secondary", fn: closeModal }
@@ -240,8 +306,14 @@
   // ======================================================================
   //  CALENDAR TAB
   // ======================================================================
-  let calWeekStart = new Date();
-  calWeekStart.setDate(calWeekStart.getDate() - calWeekStart.getDay() + 1); // Monday
+  // Start on the Monday of the current week (handles Sunday correctly)
+  function mondayOf(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const dow = d.getDay(); // 0=Sun
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+    return d;
+  }
+  let calWeekStart = mondayOf(new Date());
 
   document.getElementById("prevWeekBtn").addEventListener("click", () => {
     calWeekStart.setDate(calWeekStart.getDate() - 7);
@@ -253,69 +325,71 @@
   });
 
   async function loadCalendar() {
-    const avail = await DB.getAvailability();
-    const grid = document.getElementById("weekGrid");
+    const avail  = await DB.getAvailability();
+    const grid   = document.getElementById("weekGrid");
     const buffer = avail.bufferMinutes != null ? avail.bufferMinutes : 120;
-    const days = [];
+    const days   = [];
     for (let i = 0; i < 7; i++) {
-      const d = new Date(calWeekStart);
-      d.setDate(calWeekStart.getDate() + i);
+      const d = new Date(calWeekStart.getFullYear(), calWeekStart.getMonth(), calWeekStart.getDate() + i);
       days.push(d);
     }
 
-    document.getElementById("weekLabel").innerHTML =
-      `<strong>${Utils.formatDateISO(days[0])} — ${Utils.formatDateISO(days[6])}</strong>`;
+    document.getElementById("weekLabel").textContent =
+      Utils.formatDateISO(days[0]) + " — " + Utils.formatDateISO(days[6]);
 
     const allBookings = await DB.listBookings();
-    const dateSet = new Set(days.map(Utils.formatDateISO));
+    const dateSet     = new Set(days.map(Utils.formatDateISO));
     const weekBookings = allBookings.filter((b) => dateSet.has(b.date) && b.status !== "cancelled");
 
     let earliest = 480, latest = 1020;
     for (const d of days) {
       const h = avail.workingHours[Utils.dayKey(d)];
       if (h && !h.closed) {
-        earliest = Math.min(earliest, Utils.timeToMinutes(h.start));
-        latest = Math.max(latest, Utils.timeToMinutes(h.end));
+        const s = Utils.timeToMinutes(h.start);
+        const e = Utils.timeToMinutes(h.end);
+        if (!isNaN(s)) earliest = Math.min(earliest, s);
+        if (!isNaN(e)) latest   = Math.max(latest, e);
       }
     }
 
-    const step = avail.slotDurationMinutes || 60;
+    const step  = avail.slotDurationMinutes || 60;
     const times = [];
     for (let t = earliest; t < latest; t += step) times.push(t);
 
     let html = '<div class="wh-head"></div>';
     for (const d of days) {
       const label = d.toLocaleDateString(undefined, { weekday: "short" }) + " " + d.getDate();
-      html += `<div class="wh-head">${label}</div>`;
+      html += `<div class="wh-head">${Utils.escapeHtml(label)}</div>`;
     }
 
     for (const t of times) {
       html += `<div class="wh-time">${Utils.formatTime12h(Utils.minutesToTime(t))}</div>`;
       for (const d of days) {
-        const iso = Utils.formatDateISO(d);
-        const h = avail.workingHours[Utils.dayKey(d)];
-        const closed = !h || h.closed;
+        const iso     = Utils.formatDateISO(d);
+        const h       = avail.workingHours[Utils.dayKey(d)];
+        const closed  = !h || h.closed;
 
-        const booking = weekBookings.find((b) =>
-          b.date === iso &&
-          Utils.timeToMinutes(b.startTime) <= t &&
-          Utils.timeToMinutes(b.endTime) > t
-        );
-        const inBuffer = !booking && weekBookings.some((b) =>
-          b.date === iso &&
-          t >= Utils.timeToMinutes(b.endTime) &&
-          t < Utils.timeToMinutes(b.endTime) + buffer
-        );
+        const booking = weekBookings.find((b) => {
+          if (b.date !== iso) return false;
+          const bs = Utils.timeToMinutes(b.startTime);
+          const be = Utils.timeToMinutes(b.endTime);
+          return !isNaN(bs) && !isNaN(be) && bs <= t && be > t;
+        });
+        const inBuffer = !booking && weekBookings.some((b) => {
+          if (b.date !== iso) return false;
+          const be = Utils.timeToMinutes(b.endTime);
+          return !isNaN(be) && t >= be && t < be + buffer;
+        });
 
         if (closed) {
           html += '<div class="wh-cell closed"></div>';
         } else if (booking) {
-          const cl = booking.checklist || [];
-          const done = cl.filter((x) => x.done).length;
+          const cl     = booking.checklist || [];
+          const done   = cl.filter((x) => x.done).length;
           const clText = cl.length ? ` (${done}/${cl.length})` : "";
-          const cls = booking.status === "completed" ? "booked-completed" : "booked";
+          const cls    = booking.status === "completed" ? "booked-completed" : "booked";
           html += `<div class="wh-cell ${cls}" data-view-booking="${booking.id}"
-            title="${Utils.escapeHtml(booking.customerName + " — " + booking.serviceName)}">
+            title="${Utils.escapeHtml((booking.customerName || "") + " — " + (booking.serviceName || ""))}">
             <small>${Utils.escapeHtml(booking.customerName || "")}</small>
             ${cl.length ? `<small class="cal-progress">${clText}</small>` : ""}
           </div>`;
@@ -348,11 +422,13 @@
       <tbody>${list.map((s) => `<tr>
         <td>${Utils.escapeHtml(s.name)}</td>
         <td>${Utils.formatCurrency(s.price)}</td>
-        <td>${s.durationMinutes} min</td>
-        <td>${s.active !== false ? '<span class="badge badge-confirmed">Yes</span>' : '<span class="badge badge-cancelled">No</span>'}</td>
+        <td>${Utils.escapeHtml(String(s.durationMinutes))} min</td>
+        <td>${s.active !== false
+          ? '<span class="badge badge-confirmed">Yes</span>'
+          : '<span class="badge badge-cancelled">No</span>'}</td>
         <td>
           <button class="btn btn-sm btn-secondary" data-edit-svc="${s.id}">Edit</button>
-          <button class="btn btn-sm btn-danger" data-del-svc="${s.id}">Delete</button>
+          <button class="btn btn-sm btn-danger"     data-del-svc="${s.id}">Delete</button>
         </td>
       </tr>`).join("")}</tbody></table></div>`;
 
@@ -361,9 +437,12 @@
     );
     wrap.querySelectorAll("[data-del-svc]").forEach((btn) =>
       btn.addEventListener("click", async () => {
-        if (confirm("Delete this service?")) {
+        if (!confirm("Delete this service?")) return;
+        try {
           await DB.removeService(btn.dataset.delSvc);
           loadServices();
+        } catch (e) {
+          alert("Failed to delete service: " + e.message);
         }
       })
     );
@@ -374,8 +453,8 @@
     return `
       <div class="form-row"><label>Name</label><input id="sfName" value="${Utils.escapeHtml(s.name || "")}" required /></div>
       <div class="form-row"><label>Description</label><textarea id="sfDesc">${Utils.escapeHtml(s.description || "")}</textarea></div>
-      <div class="form-row"><label>Price ($)</label><input id="sfPrice" type="number" step="0.01" value="${s.price || ""}" required /></div>
-      <div class="form-row"><label>Duration (minutes)</label><input id="sfDur" type="number" step="15" value="${s.durationMinutes || 60}" required /></div>
+      <div class="form-row"><label>Price ($)</label><input id="sfPrice" type="number" step="0.01" min="0" value="${s.price != null ? s.price : ""}" required /></div>
+      <div class="form-row"><label>Duration (minutes)</label><input id="sfDur" type="number" step="15" min="15" max="480" value="${s.durationMinutes || 60}" required /></div>
       <div class="form-row" style="display:flex;align-items:center;gap:0.75rem">
         <label class="toggle-switch"><input id="sfActive" type="checkbox" ${s.active !== false ? "checked" : ""} /><span class="toggle-slider"></span></label>
         <span style="font-size:0.88rem;color:var(--text-dim);font-weight:600">Active — customers can book this service</span>
@@ -384,19 +463,38 @@
 
   function readServiceForm() {
     return {
-      name: document.getElementById("sfName").value.trim(),
-      description: document.getElementById("sfDesc").value.trim(),
-      price: Number(document.getElementById("sfPrice").value),
+      name:            document.getElementById("sfName").value.trim(),
+      description:     document.getElementById("sfDesc").value.trim(),
+      price:           Number(document.getElementById("sfPrice").value),
       durationMinutes: Number(document.getElementById("sfDur").value),
-      active: document.getElementById("sfActive").checked
+      active:          document.getElementById("sfActive").checked
     };
+  }
+
+  function validateServiceForm() {
+    const data = readServiceForm();
+    if (!data.name)                     return "Service name is required.";
+    if (isNaN(data.price) || data.price < 0) return "Price must be a valid number.";
+    if (!data.durationMinutes || data.durationMinutes < 15) return "Duration must be at least 15 minutes.";
+    return null; // valid
   }
 
   document.getElementById("newServiceBtn").addEventListener("click", () => {
     openModal("New Service", serviceFormHtml(), [
       {
         label: "Create",
-        fn: async () => { await DB.addService(readServiceForm()); closeModal(); loadServices(); }
+        fn: async () => {
+          clearModalError();
+          const err = validateServiceForm();
+          if (err) { showModalError(err); return; }
+          try {
+            await DB.addService(readServiceForm());
+            closeModal();
+            loadServices();
+          } catch (e) {
+            showModalError("Failed to create service: " + e.message);
+          }
+        }
       },
       { label: "Cancel", cls: "btn-secondary", fn: closeModal }
     ]);
@@ -404,11 +502,22 @@
 
   async function editService(id) {
     const s = await DB.getService(id);
-    if (!s) return;
+    if (!s) { alert("Service not found."); return; }
     openModal("Edit Service", serviceFormHtml(s), [
       {
         label: "Save",
-        fn: async () => { await DB.updateService(id, readServiceForm()); closeModal(); loadServices(); }
+        fn: async () => {
+          clearModalError();
+          const err = validateServiceForm();
+          if (err) { showModalError(err); return; }
+          try {
+            await DB.updateService(id, readServiceForm());
+            closeModal();
+            loadServices();
+          } catch (e) {
+            showModalError("Failed to save service: " + e.message);
+          }
+        }
       },
       { label: "Cancel", cls: "btn-secondary", fn: closeModal }
     ]);
@@ -431,7 +540,7 @@
     const allBookings = await DB.listBookings();
     const body = document.getElementById("custBody");
     body.innerHTML = list.map((c) => {
-      const count = allBookings.filter((b) => b.customerId === c.id).length;
+      const count     = allBookings.filter((b) => b.customerId === c.id).length;
       const noteCount = (c.notesLog || []).length;
       return `<tr>
         <td>${Utils.escapeHtml(c.name || "—")}</td>
@@ -452,7 +561,7 @@
     if (!notesLog || notesLog.length === 0) return '<p class="muted">No notes yet.</p>';
     return [...notesLog].reverse().map((n) =>
       `<div class="note-entry">
-        <div class="note-meta">${new Date(n.createdAt).toLocaleString()}</div>
+        <div class="note-meta">${Utils.escapeHtml(new Date(n.createdAt).toLocaleString())}</div>
         <div class="note-text">${Utils.escapeHtml(n.text)}</div>
       </div>`
     ).join("");
@@ -460,15 +569,15 @@
 
   async function viewCustomer(id) {
     const c = await DB.getCustomer(id);
-    if (!c) return;
+    if (!c) { alert("Customer not found."); return; }
     const bookings = (await DB.listBookings())
       .filter((b) => b.customerId === id)
-      .sort((a, b) => b.date.localeCompare(a.date));
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
     const history = bookings.length
       ? bookings.map((b) =>
           `<div style="margin-bottom:0.5rem">
             <span class="badge badge-${b.status}">${b.status}</span>
-            ${Utils.escapeHtml(b.date)} at ${Utils.formatTime12h(b.startTime)} — ${Utils.escapeHtml(b.serviceName || "")}
+            ${Utils.escapeHtml(b.date || "")} at ${Utils.formatTime12h(b.startTime || "")} — ${Utils.escapeHtml(b.serviceName || "")}
             <button class="btn btn-sm btn-secondary" style="padding:0.15rem 0.5rem;margin-left:0.4rem" data-view-booking="${b.id}">View</button>
           </div>`
         ).join("")
@@ -480,7 +589,6 @@
       <div class="form-row"><label>Email</label><input id="cfEmail" value="${Utils.escapeHtml(c.email || "")}" /></div>
       <div class="form-row"><label>Address</label><input id="cfAddr" value="${Utils.escapeHtml(c.address || "")}" /></div>
       <div class="form-row"><label>Booking History</label>${history}</div>
-
       <div class="form-row">
         <label>Notes Log</label>
         <div id="notesLogList" class="notes-log">${renderNotesLog(c.notesLog)}</div>
@@ -490,28 +598,37 @@
         </div>
       </div>`;
 
-    openModal("Customer: " + (c.name || ""), body, [
+    openModal("Customer: " + Utils.escapeHtml(c.name || ""), body, [
       {
         label: "Save Info",
         fn: async () => {
-          await DB.updateCustomer(id, {
-            name: document.getElementById("cfName").value.trim(),
-            phone: document.getElementById("cfPhone").value.trim(),
-            email: document.getElementById("cfEmail").value.trim(),
-            address: document.getElementById("cfAddr").value.trim()
-          });
-          closeModal();
-          loadCustomers();
+          clearModalError();
+          try {
+            await DB.updateCustomer(id, {
+              name:    document.getElementById("cfName").value.trim(),
+              phone:   document.getElementById("cfPhone").value.trim(),
+              email:   document.getElementById("cfEmail").value.trim(),
+              address: document.getElementById("cfAddr").value.trim()
+            });
+            closeModal();
+            loadCustomers();
+          } catch (e) {
+            showModalError("Failed to save: " + e.message);
+          }
         }
       },
       {
         label: "Delete Customer",
         cls: "btn-danger btn-sm",
         fn: async () => {
-          if (confirm("Delete this customer? Their bookings will remain.")) {
+          if (!confirm("Delete this customer? Their bookings will remain.")) return;
+          clearModalError();
+          try {
             await DB.removeCustomer(id);
             closeModal();
             loadCustomers();
+          } catch (e) {
+            showModalError("Failed to delete: " + e.message);
           }
         }
       },
@@ -522,16 +639,21 @@
     document.getElementById("addNoteBtn").addEventListener("click", async () => {
       const text = document.getElementById("newNoteText").value.trim();
       if (!text) return;
-      const fresh = await DB.getCustomer(id);
-      const log = fresh.notesLog || [];
-      log.push({ id: "n_" + Date.now(), text, createdAt: new Date().toISOString() });
-      await DB.updateCustomer(id, { notesLog: log });
-      document.getElementById("notesLogList").innerHTML = renderNotesLog(log);
-      document.getElementById("newNoteText").value = "";
+      try {
+        const fresh = await DB.getCustomer(id);
+        if (!fresh) { showModalError("Customer record no longer exists."); return; }
+        const log = Array.isArray(fresh.notesLog) ? fresh.notesLog : [];
+        log.push({ id: "n_" + Date.now(), text, createdAt: new Date().toISOString() });
+        await DB.updateCustomer(id, { notesLog: log });
+        document.getElementById("notesLogList").innerHTML = renderNotesLog(log);
+        document.getElementById("newNoteText").value = "";
+      } catch (e) {
+        showModalError("Failed to add note: " + e.message);
+      }
     });
 
     // Allow opening bookings from history
-    document.querySelectorAll("[data-view-booking]").forEach((btn) => {
+    document.querySelectorAll("#modalBody [data-view-booking]").forEach((btn) => {
       btn.addEventListener("click", () => {
         closeModal();
         viewBooking(btn.dataset.viewBooking);
@@ -546,7 +668,7 @@
 
   async function loadAvailability() {
     availData = await DB.getAvailability();
-    document.getElementById("slotDur").value = String(availData.slotDurationMinutes || 60);
+    document.getElementById("slotDur").value   = String(availData.slotDurationMinutes || 60);
     document.getElementById("bufferTime").value = String(availData.bufferMinutes != null ? availData.bufferMinutes : 120);
 
     const DAY_LABELS = { sun: "Sunday", mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday" };
@@ -561,9 +683,9 @@
         </label>
         <span class="day-name">${DAY_LABELS[day]}</span>
         <div class="day-times" id="htimes-${day}" ${!isOpen ? 'style="display:none"' : ""}>
-          <input type="time" id="hw-${day}-start" value="${h.start}" />
+          <input type="time" id="hw-${day}-start" value="${h.start || "09:00"}" />
           <span>to</span>
-          <input type="time" id="hw-${day}-end" value="${h.end}" />
+          <input type="time" id="hw-${day}-end" value="${h.end || "17:00"}" />
         </div>
         <span class="day-closed-label" id="hclosed-${day}" ${isOpen ? 'style="display:none"' : ""}>Closed</span>
       </div>`;
@@ -572,7 +694,7 @@
     Utils.DAY_KEYS.forEach((day) => {
       document.getElementById(`hw-${day}-open`).addEventListener("change", (e) => {
         const open = e.target.checked;
-        document.getElementById(`htimes-${day}`).style.display = open ? "" : "none";
+        document.getElementById(`htimes-${day}`).style.display  = open ? "" : "none";
         document.getElementById(`hclosed-${day}`).style.display = open ? "none" : "";
       });
     });
@@ -583,13 +705,13 @@
 
   function renderBlocked() {
     const list = (availData.blockedDates || []).sort();
-    const el = document.getElementById("blockedList");
+    const el   = document.getElementById("blockedList");
     if (list.length === 0) {
       el.innerHTML = '<span class="muted">No blocked dates.</span>';
       return;
     }
     el.innerHTML = list.map((d) =>
-      `<span class="badge badge-cancelled" style="margin:0.2rem;cursor:pointer" data-unblock="${d}">${d} ×</span>`
+      `<span class="badge badge-cancelled" style="margin:0.2rem;cursor:pointer" data-unblock="${d}">${Utils.escapeHtml(d)} ×</span>`
     ).join("");
     el.querySelectorAll("[data-unblock]").forEach((b) =>
       b.addEventListener("click", () => {
@@ -601,7 +723,7 @@
 
   function renderChecklistTemplate() {
     const items = availData.checklistTemplate || [];
-    const el = document.getElementById("checklistTemplateList");
+    const el    = document.getElementById("checklistTemplateList");
     if (items.length === 0) {
       el.innerHTML = '<span class="muted">No items yet.</span>';
     } else {
@@ -622,7 +744,7 @@
 
   document.getElementById("addChecklistItemBtn").addEventListener("click", () => {
     const input = document.getElementById("newChecklistItem");
-    const val = input.value.trim();
+    const val   = input.value.trim();
     if (!val) return;
     if (!availData.checklistTemplate) availData.checklistTemplate = [];
     availData.checklistTemplate.push(val);
@@ -643,91 +765,22 @@
     const hours = {};
     Utils.DAY_KEYS.forEach((day) => {
       hours[day] = {
-        start: document.getElementById(`hw-${day}-start`).value || "09:00",
-        end: document.getElementById(`hw-${day}-end`).value || "17:00",
+        start:  document.getElementById(`hw-${day}-start`).value || "09:00",
+        end:    document.getElementById(`hw-${day}-end`).value   || "17:00",
         closed: !document.getElementById(`hw-${day}-open`).checked
       };
     });
-    availData.workingHours = hours;
-    availData.slotDurationMinutes = Number(document.getElementById("slotDur").value) || 60;
-    availData.bufferMinutes = Number(document.getElementById("bufferTime").value) || 0;
-    await DB.setAvailability(availData);
+    availData.workingHours      = hours;
+    availData.slotDurationMinutes = Number(document.getElementById("slotDur").value)   || 60;
+    availData.bufferMinutes       = Number(document.getElementById("bufferTime").value) || 0;
     const msg = document.getElementById("availSaveStatus");
-    msg.textContent = "Saved!";
-    setTimeout(() => (msg.textContent = ""), 2000);
-  });
-
-  // ======================================================================
-  //  SITE SETTINGS TAB
-  // ======================================================================
-  let siteSettings = null;
-
-  async function loadSettings() {
-    siteSettings = await DB.getSiteSettings();
-    document.getElementById("stPhone").value            = siteSettings.phone              || "";
-    document.getElementById("stEmail").value            = siteSettings.email              || "";
-    document.getElementById("stHeroHeadline").value     = siteSettings.heroHeadline        || "";
-    document.getElementById("stHeroTagline").value      = siteSettings.heroTagline         || "";
-    document.getElementById("stSvcHeading").value       = siteSettings.servicesHeading     || "";
-    document.getElementById("stSvcSubheading").value    = siteSettings.servicesSubheading  || "";
-    document.getElementById("stSvcDisclaimer").value    = siteSettings.servicesDisclaimer  || "";
-    document.getElementById("stContactHeading").value   = siteSettings.contactHeading      || "";
-    document.getElementById("stContactSubheading").value= siteSettings.contactSubheading   || "";
-    renderTrustItems();
-  }
-
-  function renderTrustItems() {
-    const items = siteSettings.trustItems || [];
-    const el = document.getElementById("trustItemsList");
-    if (items.length === 0) {
-      el.innerHTML = '<p class="muted">No trust items. Click "+ Add Item".</p>';
-      return;
+    try {
+      await DB.setAvailability(availData);
+      msg.textContent = "Saved!";
+    } catch (e) {
+      msg.textContent = "Save failed: " + e.message;
     }
-    el.innerHTML = items.map((item, i) => `
-      <div class="trust-editor-row">
-        <input class="trust-item-input" data-idx="${i}" value="${Utils.escapeHtml(item)}" placeholder="e.g. We come to you" />
-        <button class="btn btn-sm btn-danger" data-remove-trust="${i}" style="padding:0.25rem 0.6rem;flex-shrink:0">×</button>
-      </div>
-    `).join("");
-    el.querySelectorAll("[data-remove-trust]").forEach((btn) =>
-      btn.addEventListener("click", () => {
-        siteSettings.trustItems = readTrustItems();
-        siteSettings.trustItems.splice(Number(btn.dataset.removeTrust), 1);
-        renderTrustItems();
-      })
-    );
-  }
-
-  function readTrustItems() {
-    return [...document.querySelectorAll(".trust-item-input")].map((i) => i.value.trim()).filter(Boolean);
-  }
-
-  document.getElementById("addTrustItemBtn").addEventListener("click", () => {
-    siteSettings.trustItems = readTrustItems();
-    siteSettings.trustItems.push("");
-    renderTrustItems();
-    const inputs = document.querySelectorAll(".trust-item-input");
-    if (inputs.length) inputs[inputs.length - 1].focus();
-  });
-
-  document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
-    siteSettings = {
-      ...siteSettings,
-      phone:               document.getElementById("stPhone").value.trim(),
-      email:               document.getElementById("stEmail").value.trim(),
-      heroHeadline:        document.getElementById("stHeroHeadline").value.trim(),
-      heroTagline:         document.getElementById("stHeroTagline").value.trim(),
-      servicesHeading:     document.getElementById("stSvcHeading").value.trim(),
-      servicesSubheading:  document.getElementById("stSvcSubheading").value.trim(),
-      servicesDisclaimer:  document.getElementById("stSvcDisclaimer").value.trim(),
-      contactHeading:      document.getElementById("stContactHeading").value.trim(),
-      contactSubheading:   document.getElementById("stContactSubheading").value.trim(),
-      trustItems:          readTrustItems()
-    };
-    await DB.setSiteSettings(siteSettings);
-    const msg = document.getElementById("settingsSaveStatus");
-    msg.textContent = "Saved!";
-    setTimeout(() => (msg.textContent = ""), 2000);
+    setTimeout(() => (msg.textContent = ""), 3000);
   });
 
   // ======================================================================
@@ -737,14 +790,14 @@
 
   async function loadAbout() {
     aboutData = await DB.getAbout();
-    document.getElementById("aboutHeading").value = aboutData.heading || "";
+    document.getElementById("aboutHeading").value    = aboutData.heading    || "";
     document.getElementById("aboutSubheading").value = aboutData.subheading || "";
     renderAboutCards();
   }
 
   function renderAboutCards() {
     const cards = aboutData.cards || [];
-    const el = document.getElementById("aboutCardsList");
+    const el    = document.getElementById("aboutCardsList");
     if (cards.length === 0) {
       el.innerHTML = '<p class="muted">No cards yet. Click "+ Add Card" to add one.</p>';
       return;
@@ -786,11 +839,9 @@
 
   document.getElementById("addAboutCardBtn").addEventListener("click", () => {
     if (!aboutData.cards) aboutData.cards = [];
-    // Snapshot current edits before adding
     aboutData.cards = readAboutCards();
     aboutData.cards.push({ heading: "", body: "" });
     renderAboutCards();
-    // Focus the new heading input
     const inputs = document.querySelectorAll(".ac-heading");
     if (inputs.length) inputs[inputs.length - 1].focus();
   });
@@ -799,21 +850,102 @@
     aboutData.heading    = document.getElementById("aboutHeading").value.trim();
     aboutData.subheading = document.getElementById("aboutSubheading").value.trim();
     aboutData.cards      = readAboutCards();
-    await DB.setAbout(aboutData);
     const msg = document.getElementById("aboutSaveStatus");
-    msg.textContent = "Saved!";
-    setTimeout(() => (msg.textContent = ""), 2000);
+    try {
+      await DB.setAbout(aboutData);
+      msg.textContent = "Saved!";
+    } catch (e) {
+      msg.textContent = "Save failed: " + e.message;
+    }
+    setTimeout(() => (msg.textContent = ""), 3000);
+  });
+
+  // ======================================================================
+  //  SITE SETTINGS TAB
+  // ======================================================================
+  let siteSettings = null;
+
+  async function loadSettings() {
+    siteSettings = await DB.getSiteSettings();
+    document.getElementById("stPhone").value             = siteSettings.phone              || "";
+    document.getElementById("stEmail").value             = siteSettings.email              || "";
+    document.getElementById("stHeroHeadline").value      = siteSettings.heroHeadline        || "";
+    document.getElementById("stHeroTagline").value       = siteSettings.heroTagline         || "";
+    document.getElementById("stSvcHeading").value        = siteSettings.servicesHeading     || "";
+    document.getElementById("stSvcSubheading").value     = siteSettings.servicesSubheading  || "";
+    document.getElementById("stSvcDisclaimer").value     = siteSettings.servicesDisclaimer  || "";
+    document.getElementById("stContactHeading").value    = siteSettings.contactHeading      || "";
+    document.getElementById("stContactSubheading").value = siteSettings.contactSubheading   || "";
+    renderTrustItems();
+  }
+
+  function renderTrustItems() {
+    const items = siteSettings.trustItems || [];
+    const el    = document.getElementById("trustItemsList");
+    if (items.length === 0) {
+      el.innerHTML = '<p class="muted">No trust items. Click "+ Add Item".</p>';
+      return;
+    }
+    el.innerHTML = items.map((item, i) => `
+      <div class="trust-editor-row">
+        <input class="trust-item-input" data-idx="${i}" value="${Utils.escapeHtml(item)}" placeholder="e.g. We come to you" />
+        <button class="btn btn-sm btn-danger" data-remove-trust="${i}" style="padding:0.25rem 0.6rem;flex-shrink:0">×</button>
+      </div>
+    `).join("");
+    el.querySelectorAll("[data-remove-trust]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        siteSettings.trustItems = readTrustItems();
+        siteSettings.trustItems.splice(Number(btn.dataset.removeTrust), 1);
+        renderTrustItems();
+      })
+    );
+  }
+
+  function readTrustItems() {
+    return [...document.querySelectorAll(".trust-item-input")].map((i) => i.value.trim()).filter(Boolean);
+  }
+
+  document.getElementById("addTrustItemBtn").addEventListener("click", () => {
+    siteSettings.trustItems = readTrustItems();
+    siteSettings.trustItems.push("");
+    renderTrustItems();
+    const inputs = document.querySelectorAll(".trust-item-input");
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  document.getElementById("saveSettingsBtn").addEventListener("click", async () => {
+    siteSettings = {
+      ...siteSettings,
+      phone:              document.getElementById("stPhone").value.trim(),
+      email:              document.getElementById("stEmail").value.trim(),
+      heroHeadline:       document.getElementById("stHeroHeadline").value.trim(),
+      heroTagline:        document.getElementById("stHeroTagline").value.trim(),
+      servicesHeading:    document.getElementById("stSvcHeading").value.trim(),
+      servicesSubheading: document.getElementById("stSvcSubheading").value.trim(),
+      servicesDisclaimer: document.getElementById("stSvcDisclaimer").value.trim(),
+      contactHeading:     document.getElementById("stContactHeading").value.trim(),
+      contactSubheading:  document.getElementById("stContactSubheading").value.trim(),
+      trustItems:         readTrustItems()
+    };
+    const msg = document.getElementById("settingsSaveStatus");
+    try {
+      await DB.setSiteSettings(siteSettings);
+      msg.textContent = "Saved!";
+    } catch (e) {
+      msg.textContent = "Save failed: " + e.message;
+    }
+    setTimeout(() => (msg.textContent = ""), 3000);
   });
 
   // ---------- Tab loaders ----------
   const tabLoaders = {
-    bookings: loadBookings,
-    calendar: loadCalendar,
-    services: loadServices,
-    customers: loadCustomers,
+    bookings:     loadBookings,
+    calendar:     loadCalendar,
+    services:     loadServices,
+    customers:    loadCustomers,
     availability: loadAvailability,
-    about: loadAbout,
-    settings: loadSettings
+    about:        loadAbout,
+    settings:     loadSettings
   };
 
   loadBookings();
