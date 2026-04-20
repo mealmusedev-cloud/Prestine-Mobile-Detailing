@@ -206,11 +206,30 @@
         adminNotes: ""
       });
 
+      // Send confirmation email via EmailJS (non-blocking — don't fail the booking if email errors)
+      try {
+        const settings = await DB.getSiteSettings();
+        await emailjs.send("service_m405iul", "template_sy0vphv", {
+          customer_name: custData.name,
+          customer_email: custData.email,
+          service_name:   state.service.name,
+          date:           Utils.formatDateLong(state.date),
+          time:           Utils.formatTime12h(state.slot.start),
+          address:        custData.address,
+          booking_id:     booking.id,
+          phone:          (settings && settings.phone) ? settings.phone : "(360) 580-4840"
+        });
+      } catch (emailErr) {
+        // Email failure is non-fatal — booking is already saved
+        console.warn("[booking] confirmation email failed:", emailErr);
+      }
+
       document.getElementById("confirmText").innerHTML =
         `Your <strong>${Utils.escapeHtml(state.service.name)}</strong> is scheduled for ` +
         `<strong>${Utils.formatDateLong(state.date)}</strong> at ` +
         `<strong>${Utils.formatTime12h(state.slot.start)}</strong>.<br/><br/>` +
-        `Confirmation: <code>${booking.id}</code>`;
+        `Confirmation: <code>${booking.id}</code><br/>` +
+        `<span style="font-size:0.85rem;color:var(--text-dim)">A confirmation email has been sent to ${Utils.escapeHtml(custData.email)}</span>`;
       show(5);
     } catch (err) {
       console.error("[booking] submit error:", err);

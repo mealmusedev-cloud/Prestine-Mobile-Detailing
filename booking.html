@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Book an Appointment — Pristine Mobile Detailing</title>
-  <link rel="stylesheet" href="css/style.css?v=5" />
+  <link rel="stylesheet" href="css/style.css?v=6" />
 </head>
 <body>
   <nav class="nav">
@@ -119,6 +119,10 @@
       &copy; <span id="year"></span> Pristine Mobile Detailing
     </div>
   </footer>
+
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script>emailjs.init("qO67BfqUNh4xlQ6Ml");</script>
 
   <!-- Firebase SDK (compat) — must load before config.js and firebase-init.js -->
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
