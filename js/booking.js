@@ -212,7 +212,7 @@
         await emailjs.send("service_m405iul", "template_sy0vphv", {
           customer_name: custData.name,
           customer_email: custData.email,
-          service_name:   state.service.name,
+          service_name:   state.service.name.replace(/\//g, " & "),
           date:           Utils.formatDateLong(state.date),
           time:           Utils.formatTime12h(state.slot.start),
           address:        custData.address,
